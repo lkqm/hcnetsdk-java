@@ -41,6 +41,6 @@ public class HikResult<T> {
         if (success) {
             return "";
         }
-        return errorCode + ", " + errorMsg;
+        return errorCode + "," + errorMsg;
     }
 }

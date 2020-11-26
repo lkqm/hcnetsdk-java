@@ -1,4 +1,4 @@
-package com.github.lkqm.hcnet;
+package com.github.lkqm.hcnet.util;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -8,12 +8,15 @@ import java.util.HashMap;
 import java.util.Map;
 import sun.awt.OSInfo;
 
+/**
+ * Jna加载本地库相关工具类。
+ */
 public class JnaPathUtils {
 
     /**
-     * 检查并初始化JNA链接本地库相关系统属性: jna.library.path
+     * 检查并设置本地库加载目录系统变量(jna.library.path)，
      * <p>
-     * 主要步骤: 1.操作系统检查, 支持linux, windows 2.若jar启动检查属性: jna.library.path 3.非jar启动并且属性为空,重新设置
+     * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
     public static void initJnaLibraryPath() {
         final String jnaPropertyName = "jna.library.path";
@@ -41,11 +44,17 @@ public class JnaPathUtils {
         }
     }
 
-    private static boolean isRunWithJar() {
+    /**
+     * 是否以可执行jar方式启动
+     */
+    public static boolean isRunWithJar() {
         String protocol = JnaPathUtils.class.getResource("").getProtocol();
         return "jar".equals(protocol);
     }
 
+    /**
+     * 获取执行jar所在目录
+     */
     public static String getJarDirectoryPath() {
         URL url = getLocation(JnaPathUtils.class);
         File file = urlToFile(url);

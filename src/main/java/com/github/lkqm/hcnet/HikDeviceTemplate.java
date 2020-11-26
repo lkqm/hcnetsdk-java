@@ -1,22 +1,28 @@
 package com.github.lkqm.hcnet;
 
+import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
+import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.Token;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.NativeLongByReference;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Objects;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 
 /**
  * 海康SDK工具类
  */
 @SuppressWarnings("rawtypes")
-public class HikService {
+public class HikDeviceTemplate {
 
     public static final int DEFAULT_PORT = 8000;
 
@@ -24,8 +30,7 @@ public class HikService {
     @NonNull
     private final HCNetSDK hcnetsdk;
 
-
-    public HikService(@NonNull HCNetSDK hcnetsdk) {
+    public HikDeviceTemplate(@NonNull HCNetSDK hcnetsdk) {
         hcnetsdk.NET_DVR_Init();
         this.hcnetsdk = hcnetsdk;
     }
@@ -33,11 +38,11 @@ public class HikService {
     /**
      * 登录设备
      */
-    public HikResult<Token> login(String ip, int port, String username, String password) {
+    public HikResult<Token> login(String ip, int port, String user, String password) {
         HCNetSDK.NET_DVR_USER_LOGIN_INFO loginInfo = new NET_DVR_USER_LOGIN_INFO();
         System.arraycopy(ip.getBytes(), 0, loginInfo.sDeviceAddress, 0, ip.length());
         loginInfo.wPort = (short) port;
-        System.arraycopy(username.getBytes(), 0, loginInfo.sUserName, 0, username.length());
+        System.arraycopy(user.getBytes(), 0, loginInfo.sUserName, 0, user.length());
         System.arraycopy(password.getBytes(), 0, loginInfo.sPassword, 0, password.length());
         loginInfo.bUseAsynLogin = 0;
         loginInfo.write();
@@ -49,7 +54,7 @@ public class HikService {
             return lastError();
         }
         Token token = new Token();
-        token.setUserId(userId);
+        token.setUserId(userId.longValue());
         token.setDeviceSerialNumber(new String(deviceInfo.struDeviceV30.sSerialNumber).trim());
         return HikResult.ok(token);
     }
@@ -57,9 +62,9 @@ public class HikService {
     /**
      * 注销登录
      */
-    public HikResult logout(NativeLong userId) {
-        if (userId.longValue() > -1) {
-            boolean result = hcnetsdk.NET_DVR_Logout(userId);
+    public HikResult logout(long userId) {
+        if (userId > -1) {
+            boolean result = hcnetsdk.NET_DVR_Logout(new NativeLong(userId));
             if (!result) {
                 return lastError();
             }
@@ -70,16 +75,16 @@ public class HikService {
     /**
      * 执行动作
      */
-    public HikResult doAction(String ip, int port, String username, String password,
-            Function<Token, HikResult> action) {
-        HikResult<Token> loginResult = login(ip, port, username, password);
+    public HikResult doAction(String ip, int port, String user, String password,
+            BiFunction<HCNetSDK, Token, HikResult> action) {
+        HikResult<Token> loginResult = login(ip, port, user, password);
         if (!loginResult.isSuccess()) {
             return loginResult;
         }
 
         Token token = loginResult.getData();
         try {
-            HikResult result = action.apply(token);
+            HikResult result = action.apply(hcnetsdk, token);
             if (result == null) {
                 result = HikResult.ok();
             }
@@ -110,7 +115,7 @@ public class HikService {
     /**
      * 设备透传, 实现数据获取或配置修改.
      */
-    public HikResult<String> passThrough(NativeLong userId, String url, String input) {
+    public HikResult<String> passThrough(long userId, String url, String input) {
         //透传
         HCNetSDK.NET_DVR_STRING_POINTER stringRequest = new HCNetSDK.NET_DVR_STRING_POINTER();
         stringRequest.read();
@@ -146,7 +151,7 @@ public class HikService {
         struXMLOutput.dwStatusSize = struXMLStatus.size();
         stringInBuffer.write();
 
-        boolean result = hcnetsdk.NET_DVR_STDXMLConfig(userId, struXMLInput, struXMLOutput);
+        boolean result = hcnetsdk.NET_DVR_STDXMLConfig(new NativeLong(userId), struXMLInput, struXMLOutput);
         if (!result) {
             return lastError();
         }
@@ -159,12 +164,12 @@ public class HikService {
     /**
      * 设置消息回调，并布防.
      */
-    public HikResult<Long> registerMessageCallback(NativeLong userId, HCNetSDK.FMSGCallBack callback) {
+    public HikResult<Long> registerMessageCallback(long userId, HCNetSDK.FMSGCallBack callback) {
         boolean result = hcnetsdk.NET_DVR_SetDVRMessageCallBack_V30(callback, null);
         if (!result) {
             return lastError();
         }
-        NativeLong setupAlarmHandle = hcnetsdk.NET_DVR_SetupAlarmChan_V30(userId);
+        NativeLong setupAlarmHandle = hcnetsdk.NET_DVR_SetupAlarmChan_V30(new NativeLong(userId));
         if (setupAlarmHandle.longValue() == -1) {
             return lastError();
         }
@@ -174,8 +179,8 @@ public class HikService {
     /**
      * 重启设备.
      */
-    public HikResult reboot(NativeLong userId) {
-        boolean rebootResult = hcnetsdk.NET_DVR_RebootDVR(userId);
+    public HikResult reboot(long userId) {
+        boolean rebootResult = hcnetsdk.NET_DVR_RebootDVR(new NativeLong(userId));
         if (!rebootResult) {
             return lastError();
         }
@@ -185,11 +190,11 @@ public class HikService {
     /**
      * 修改设备密码.
      */
-    public HikResult modifyPassword(NativeLong userId, String username, String newPassword) {
+    public HikResult modifyPassword(long userId, String username, String newPassword) {
         // 获取原始配置
         HCNetSDK.NET_DVR_USER_V30 test = new HCNetSDK.NET_DVR_USER_V30();
         test.write();
-        boolean getResult = hcnetsdk.NET_DVR_GetDVRConfig(userId, HCNetSDK.NET_DVR_GET_USERCFG_V30,
+        boolean getResult = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_GET_USERCFG_V30,
                 new NativeLong(0), test.getPointer(), test.size(), new IntByReference(0));
         if (!getResult) {
             HikResult errorResult = lastError();
@@ -206,7 +211,7 @@ public class HikService {
             }
         }
         test.write();
-        boolean setResult = hcnetsdk.NET_DVR_SetDVRConfig(userId, HCNetSDK.NET_DVR_SET_USERCFG_V30,
+        boolean setResult = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_SET_USERCFG_V30,
                 new NativeLong(0), test.getPointer(), test.dwSize);
         if (!setResult) {
             HikResult errorResult = lastError();
@@ -219,14 +224,15 @@ public class HikService {
     /**
      * NVR重新绑定通道, 抓拍机修改密码后需要重新绑定.
      */
-    public HikResult nvrRebindChannels(NativeLong userId, String dvrUsername, String dvrNewPassword) {
+    public HikResult nvrRebindChannels(long userId, String dvrUsername, String dvrNewPassword) {
         // 获取已绑定通道配置
         IntByReference ibrBytesReturned = new IntByReference(0);
         HCNetSDK.NET_DVR_IPPARACFG mStrIpparaCfg = new HCNetSDK.NET_DVR_IPPARACFG();
         mStrIpparaCfg.write();
         Pointer lpIpParaConfig = mStrIpparaCfg.getPointer();
-        boolean getResult = hcnetsdk.NET_DVR_GetDVRConfig(userId, HCNetSDK.NET_DVR_GET_IPPARACFG, new NativeLong(33),
-                lpIpParaConfig, mStrIpparaCfg.size(), ibrBytesReturned);
+        boolean getResult = hcnetsdk
+                .NET_DVR_GetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_GET_IPPARACFG, new NativeLong(33),
+                        lpIpParaConfig, mStrIpparaCfg.size(), ibrBytesReturned);
         if (!getResult) {
             HikResult errorResult = lastError();
             errorResult.setSuccess(false);
@@ -243,14 +249,111 @@ public class HikService {
             }
         }
         mStrIpparaCfg.write();
-        boolean setResult = hcnetsdk.NET_DVR_SetDVRConfig(userId, HCNetSDK.NET_DVR_SET_IPPARACFG, new NativeLong(33),
-                mStrIpparaCfg.getPointer(), mStrIpparaCfg.dwSize);
+        boolean setResult = hcnetsdk
+                .NET_DVR_SetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_SET_IPPARACFG, new NativeLong(33),
+                        mStrIpparaCfg.getPointer(), mStrIpparaCfg.dwSize);
         if (!setResult) {
             HikResult errorResult = lastError();
             errorResult.setSuccess(false);
             return errorResult;
         }
         return HikResult.ok();
+    }
+
+    /**
+     * 设备校时
+     */
+    public HikResult adjustTime(long userId, Date time) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(time);
+
+        HCNetSDK.NET_DVR_TIME netDvrTime = new HCNetSDK.NET_DVR_TIME();
+        netDvrTime.dwYear = calendar.get(Calendar.YEAR);
+        netDvrTime.dwMonth = calendar.get(Calendar.MONTH) + 1;
+        netDvrTime.dwDay = calendar.get(Calendar.DAY_OF_MONTH);
+        netDvrTime.dwHour = calendar.get(Calendar.HOUR_OF_DAY);
+        netDvrTime.dwMinute = calendar.get(Calendar.MINUTE);
+        netDvrTime.dwSecond = calendar.get(Calendar.SECOND);
+        return setDvrConfig(userId, 0, HCNetSDK.NET_DVR_SET_TIMECFG, netDvrTime);
+    }
+
+    /**
+     * 获取设备配置数据.
+     */
+    @SneakyThrows
+    public <T extends Structure> HikResult<T> getDvrConfig(long userId, long channel, int command,
+            Class<T> clazz) {
+        T data = clazz.newInstance();
+        data.write();
+        boolean result = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
+                data.getPointer(), data.size(), new IntByReference(0));
+        if (!result) {
+            return lastError();
+        }
+        data.read();
+        return HikResult.ok(data);
+    }
+
+    /**
+     * 获取设备配置数据.
+     */
+    public HikResult getDvrConfig(long userId, long channel, int command, Structure data) {
+        data.write();
+        boolean result = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
+                data.getPointer(), data.size(), new IntByReference(0));
+        if (!result) {
+            return lastError();
+        }
+        data.read();
+        return HikResult.ok();
+    }
+
+    /**
+     * 设置设备配置数据.
+     */
+    public HikResult setDvrConfig(long userId, long channel, int command, Structure data) {
+        data.write();
+        boolean result = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
+                data.getPointer(), data.size());
+        if (!result) {
+            return lastError();
+        }
+        return HikResult.ok();
+    }
+
+    /**
+     * 设置视频实时预览
+     */
+    public HikResult<Long> realPlay(long userId, FRealDataCallBack_V30 callback) {
+        HCNetSDK.NET_DVR_PREVIEWINFO previewInfo = new HCNetSDK.NET_DVR_PREVIEWINFO();
+        previewInfo.lChannel = new NativeLong(1);
+        previewInfo.dwStreamType = 0;
+        previewInfo.dwLinkMode = 1;
+        previewInfo.hPlayWnd = null;
+        previewInfo.bBlocked = false;
+        previewInfo.bPassbackRecord = false;
+        previewInfo.byPreviewMode = 0;
+        return realPlay(userId, previewInfo, callback);
+    }
+
+    /**
+     * 设置实时预览
+     */
+    public HikResult<Long> realPlay(long userId, NET_DVR_PREVIEWINFO previewInfo,
+            FRealDataCallBack_V30 callback) {
+        NativeLong realPlayHandle = hcnetsdk.NET_DVR_RealPlay_V40(new NativeLong(userId), previewInfo, callback, null);
+        if (realPlayHandle.longValue() == -1) {
+            return lastError();
+        }
+        return HikResult.ok(realPlayHandle.longValue());
+    }
+
+    /**
+     * 停止实时预览
+     */
+    public HikResult stopRealPlay(long realHandle) {
+        boolean result = hcnetsdk.NET_DVR_StopRealPlay(new NativeLong(realHandle));
+        return result ? HikResult.ok() : lastError();
     }
 
 }

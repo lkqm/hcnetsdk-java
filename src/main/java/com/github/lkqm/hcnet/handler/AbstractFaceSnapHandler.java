@@ -4,9 +4,9 @@ import com.github.lkqm.hcnet.HCNetSDK;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_ALARMER;
 import com.github.lkqm.hcnet.HCNetSDK.NET_VCA_HUMAN_FEATURE;
 import com.github.lkqm.hcnet.HCNetSDK.RECV_ALARM;
-import com.github.lkqm.hcnet.JnaUtils;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.FaceSnapInfo;
+import com.github.lkqm.hcnet.util.JnaUtils;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 
@@ -35,7 +35,7 @@ public abstract class AbstractFaceSnapHandler extends AbstractHandler {
     // 解析身份证信息
     private FaceSnapInfo resolveFaceSnapInfo(RECV_ALARM pAlarmInfo) {
         HCNetSDK.NET_VCA_FACESNAP_RESULT strFaceSnapInfo = new HCNetSDK.NET_VCA_FACESNAP_RESULT();
-        JnaUtils.writePointer(pAlarmInfo.getPointer(), strFaceSnapInfo);
+        JnaUtils.pointerToStructure(pAlarmInfo.getPointer(), strFaceSnapInfo);
         NET_VCA_HUMAN_FEATURE faceFeature = strFaceSnapInfo.struFeature;
 
         byte[] faceBytes = JnaUtils.pointerToBytes(strFaceSnapInfo.pBuffer1, strFaceSnapInfo.dwFacePicLen);
