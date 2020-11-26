@@ -157,14 +157,18 @@ public class HikService {
     }
 
     /**
-     * 设置消息回调时间
+     * 设置消息回调，并布防.
      */
-    public HikResult registerMessageCallback(HCNetSDK.FMSGCallBack callback) {
+    public HikResult<Long> registerMessageCallback(NativeLong userId, HCNetSDK.FMSGCallBack callback) {
         boolean result = hcnetsdk.NET_DVR_SetDVRMessageCallBack_V30(callback, null);
         if (!result) {
             return lastError();
         }
-        return HikResult.ok();
+        NativeLong setupAlarmHandle = hcnetsdk.NET_DVR_SetupAlarmChan_V30(userId);
+        if (setupAlarmHandle.longValue() == -1) {
+            return lastError();
+        }
+        return HikResult.ok(setupAlarmHandle.longValue());
     }
 
     /**

@@ -6,17 +6,20 @@ import com.github.lkqm.hcnet.HCNetSDK.RECV_ALARM;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import java.util.List;
-import lombok.NonNull;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 基于分发的海康设备消息回调处理类.
  */
 public class DispatchMessageCallback implements HCNetSDK.FMSGCallBack {
 
-    private List<Handler> handlers;
+    public static final DispatchMessageCallback INSTANCE = new DispatchMessageCallback();
 
-    public DispatchMessageCallback(@NonNull List<Handler> handlers) {
-        this.handlers = handlers;
+    private final List<Handler> handlers = new CopyOnWriteArrayList<>();
+
+    public DispatchMessageCallback addHandler(Handler handler) {
+        handlers.add(handler);
+        return this;
     }
 
     @Override

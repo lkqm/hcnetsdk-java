@@ -5,7 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
+import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
+import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.Token;
+import java.util.concurrent.CountDownLatch;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -48,4 +53,28 @@ public class HikServiceTest {
         assertTrue(modifyResult.isSuccess(), "密码修改应该成功");
 
     }
+
+
+    @SneakyThrows
+    @Test
+    public void registerMessageCallback() {
+        HikResult<Token> tokenResult = hikService.login("192.168.0.239", HikService.DEFAULT_PORT, "admin", "123456");
+        assertTrue(tokenResult.isSuccess(), "登录应该成功: " + tokenResult.getErrorMsg());
+        Token token = tokenResult.getData();
+
+        CountDownLatch sign = new CountDownLatch(1);
+        DispatchMessageCallback dispatcher = DispatchMessageCallback.INSTANCE;
+        dispatcher.addHandler(new AbstractFaceSnapHandler() {
+            @Override
+            public void handle(FaceSnapEvent event) {
+                System.out.println(event.getDeviceInfo());
+                sign.countDown();
+            }
+        });
+
+        HikResult<Long> callbackResult = hikService.registerMessageCallback(token.getUserId(), dispatcher);
+        assertTrue(callbackResult.isSuccess(), "设置回调应该成功: " + callbackResult.getError());
+        sign.await();
+    }
+
 }
