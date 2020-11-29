@@ -30,10 +30,12 @@ public abstract class AbstractFreshCardHandler extends AbstractHandler {
     @Override
     public void invoke(NativeLong lCommand, NET_DVR_ALARMER pAlarmer, RECV_ALARM pAlarmInfo, int dwBufLen,
             Pointer pUser) {
-        FreshCardEvent event = new FreshCardEvent();
-        event.setCardInfo(resolveIdCardInfo(pAlarmInfo));
-        event.setDeviceInfo(resolveDeviceInfo(pAlarmer));
-        this.handle(event);
+        if (accept(lCommand.longValue())) {
+            FreshCardEvent event = new FreshCardEvent();
+            event.setCardInfo(resolveIdCardInfo(pAlarmInfo));
+            event.setDeviceInfo(resolveDeviceInfo(pAlarmer));
+            this.handle(event);
+        }
     }
 
     // 解析身份证信息

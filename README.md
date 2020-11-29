@@ -4,7 +4,7 @@
 ## 例子
 ```
 // 时间校准
-HikDevice device = new HikDevice(hcnetsdk, "192.168.0.239", HikDeviceTemplate.DEFAULT_PORT, "admin", "wxb888888");
+HikDevice device = new HikDevice(hcnetsdk, ip, port, user, password);
 device.init();
 device.adjustTime(new Date());
 ```

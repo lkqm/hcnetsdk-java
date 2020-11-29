@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
-import com.github.lkqm.hcnet.util.JnaPathUtils;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import lombok.SneakyThrows;
@@ -17,12 +16,13 @@ import org.junit.jupiter.api.Test;
 class HikDeviceTest {
 
     private static HikDevice hikDevice;
+    private static final String password = "hik123456";
 
     @BeforeAll
     static void setUp() {
         JnaPathUtils.initJnaLibraryPath();
         HCNetSDK hcnetsdk = HCNetSDK.INSTANCE;
-        hikDevice = new HikDevice(hcnetsdk, "192.168.0.123", HikDeviceTemplate.DEFAULT_PORT, "admin", "123456");
+        hikDevice = new HikDevice(hcnetsdk, "192.168.0.123", HikDeviceTemplate.DEFAULT_PORT, "admin", password);
 
         HikResult initResult = hikDevice.init();
         assertTrue(initResult.isSuccess(), "设备初始化失败: " + initResult.getError());
@@ -52,11 +52,11 @@ class HikDeviceTest {
 
     @Test
     void testModifyPassword() {
-        HikResult actionResult = hikDevice.modifyPassword("admin", "123456");
+        HikResult actionResult = hikDevice.modifyPassword("admin", "hik123456");
         assertTrue(actionResult.isSuccess(), "密码修改失败: " + actionResult.getError());
 
         // 还原
-        actionResult = hikDevice.modifyPassword("admin", "wxb888888");
+        actionResult = hikDevice.modifyPassword("admin", password);
         assertTrue(actionResult.isSuccess(), "密码修改失败: " + actionResult.getError());
     }
 

@@ -4,9 +4,9 @@ import com.github.lkqm.hcnet.HCNetSDK;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_ALARMER;
 import com.github.lkqm.hcnet.HCNetSDK.NET_VCA_HUMAN_FEATURE;
 import com.github.lkqm.hcnet.HCNetSDK.RECV_ALARM;
+import com.github.lkqm.hcnet.JnaUtils;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.FaceSnapInfo;
-import com.github.lkqm.hcnet.util.JnaUtils;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 
@@ -25,11 +25,12 @@ public abstract class AbstractFaceSnapHandler extends AbstractHandler {
     @Override
     public void invoke(NativeLong lCommand, NET_DVR_ALARMER pAlarmer, RECV_ALARM pAlarmInfo, int dwBufLen,
             Pointer pUser) {
-        FaceSnapEvent event = new FaceSnapEvent();
-        event.setDeviceInfo(resolveDeviceInfo(pAlarmer));
-        event.setFaceSnapInfo(resolveFaceSnapInfo(pAlarmInfo));
-
-        this.handle(event);
+        if (accept(lCommand.longValue())) {
+            FaceSnapEvent event = new FaceSnapEvent();
+            event.setDeviceInfo(resolveDeviceInfo(pAlarmer));
+            event.setFaceSnapInfo(resolveFaceSnapInfo(pAlarmInfo));
+            this.handle(event);
+        }
     }
 
     // 解析身份证信息

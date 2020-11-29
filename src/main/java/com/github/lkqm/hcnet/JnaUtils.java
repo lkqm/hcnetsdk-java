@@ -1,4 +1,4 @@
-package com.github.lkqm.hcnet.util;
+package com.github.lkqm.hcnet;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;

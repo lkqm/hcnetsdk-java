@@ -10,7 +10,6 @@ import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.Token;
-import com.github.lkqm.hcnet.util.JnaPathUtils;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;

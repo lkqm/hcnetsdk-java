@@ -1,4 +1,4 @@
-package com.github.lkqm.hcnet.util;
+package com.github.lkqm.hcnet;
 
 import java.io.File;
 import java.net.MalformedURLException;
