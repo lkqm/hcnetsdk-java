@@ -1,10 +1,11 @@
 package com.github.lkqm.hcnet;
 
+import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.sun.jna.Structure;
 import java.util.Date;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * 设备操作接口.
@@ -25,12 +26,12 @@ public interface DeviceOptions {
     /**
      * 执行动作.
      */
-    HikResult doAction(BiFunction<HCNetSDK, Token, HikResult> action);
+    HikResult doAction(Function<Token, HikResult> action);
 
     /**
-     * 设备回调.
+     * 布防.
      */
-    HikResult<Long> registerMessageCallback(HCNetSDK.FMSGCallBack callback);
+    HikResult<Long> setupDeploy(HCNetSDK.FMSGCallBack messageCallback, FExceptionCallBack exceptionCallback);
 
     /**
      * 透传.

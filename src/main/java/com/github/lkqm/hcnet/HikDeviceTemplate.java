@@ -1,5 +1,6 @@
 package com.github.lkqm.hcnet;
 
+import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
@@ -16,7 +17,7 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -56,9 +57,11 @@ public class HikDeviceTemplate {
         if (userId.longValue() == -1) {
             return lastError();
         }
-        Token token = new Token();
-        token.setUserId(userId.longValue());
-        token.setDeviceSerialNumber(new String(deviceInfo.struDeviceV30.sSerialNumber).trim());
+
+        Token token = Token.builder()
+                .userId(userId.longValue())
+                .deviceSerialNumber(new String(deviceInfo.struDeviceV30.sSerialNumber).trim())
+                .build();
         return HikResult.ok(token);
     }
 
@@ -79,7 +82,7 @@ public class HikDeviceTemplate {
      * 执行动作
      */
     public HikResult doAction(String ip, int port, String user, String password,
-            BiFunction<HCNetSDK, Token, HikResult> action) {
+            Function<Token, HikResult> action) {
         HikResult<Token> loginResult = login(ip, port, user, password);
         if (!loginResult.isSuccess()) {
             return loginResult;
@@ -87,7 +90,7 @@ public class HikDeviceTemplate {
 
         Token token = loginResult.getData();
         try {
-            HikResult result = action.apply(hcnetsdk, token);
+            HikResult result = action.apply(token);
             if (result == null) {
                 result = HikResult.ok();
             }
@@ -165,19 +168,38 @@ public class HikDeviceTemplate {
     }
 
     /**
-     * 设置消息回调，并布防.
+     * 布防.
+     * <p>
+     * 包括3个步骤: a.设置回调消息, b.建立上传通道, c.设置异常回调.
      */
-    public HikResult<Long> registerMessageCallback(long userId, HCNetSDK.FMSGCallBack callback) {
-        boolean result = hcnetsdk.NET_DVR_SetDVRMessageCallBack_V30(callback, null);
-        if (!result) {
-            return lastError();
+    public HikResult<Long> setupDeploy(long userId, HCNetSDK.FMSGCallBack messageCallback,
+            FExceptionCallBack exceptionCallback) {
+        // 消息回调
+        if (messageCallback != null) {
+            boolean result = hcnetsdk.NET_DVR_SetDVRMessageCallBack_V30(messageCallback, null);
+            if (!result) {
+                return lastError();
+            }
         }
+
+        // 建立通道
         NativeLong setupAlarmHandle = hcnetsdk.NET_DVR_SetupAlarmChan_V30(new NativeLong(userId));
         if (setupAlarmHandle.longValue() == -1) {
             return lastError();
         }
+
+        // 异常回调
+        if (exceptionCallback != null) {
+            boolean setExceptionResult = hcnetsdk
+                    .NET_DVR_SetExceptionCallBack_V30(0, setupAlarmHandle.intValue(), exceptionCallback, null);
+            if (!setExceptionResult) {
+                hcnetsdk.NET_DVR_CloseAlarmChan_V30(setupAlarmHandle);
+                return lastError();
+            }
+        }
         return HikResult.ok(setupAlarmHandle.longValue());
     }
+
 
     /**
      * 重启设备.

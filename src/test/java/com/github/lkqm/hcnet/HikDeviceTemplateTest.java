@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_TIME;
+import com.github.lkqm.hcnet.callback.PrintDeviceExceptionCallback;
 import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
@@ -27,21 +28,21 @@ public class HikDeviceTemplateTest {
     private final String ip = "192.168.0.123";
     private final int port = HikDeviceTemplate.DEFAULT_PORT;
     private final String user = "admin";
-    private final String password = "hik123456";
+    private final String password = "hik12345+";
     private Token token;
 
     static HikDeviceTemplate deviceTemplate;
 
     @BeforeAll
-    public static void initStatic() {
+    public static void beforeAll() {
         JnaPathUtils.initJnaLibraryPath();
         deviceTemplate = new HikDeviceTemplate(HCNetSDK.INSTANCE);
     }
 
     @BeforeEach
-    public void init() {
+    public void beforeEach() {
         HikResult<Token> actionResult = deviceTemplate.login(ip, port, user, password);
-        assertTrue(actionResult.isSuccess(), "登录失败: " + actionResult.getErrorMsg());
+        assertTrue(actionResult.isSuccess(), "登录失败: " + actionResult.getError());
         this.token = actionResult.getData();
     }
 
@@ -70,7 +71,7 @@ public class HikDeviceTemplateTest {
 
     @Test
     public void modifyPassword() {
-        HikResult actionResult = deviceTemplate.modifyPassword(token.getUserId(), user, "123456");
+        HikResult actionResult = deviceTemplate.modifyPassword(token.getUserId(), user, "hik123456");
         assertTrue(actionResult.isSuccess(), "密码修改失败: " + actionResult.getError());
         // 还原
         actionResult = deviceTemplate.modifyPassword(token.getUserId(), user, password);
@@ -79,20 +80,24 @@ public class HikDeviceTemplateTest {
 
     @SneakyThrows
     @Test
-    public void registerMessageCallback() {
-        CountDownLatch sign = new CountDownLatch(1);
-        DispatchMessageCallback dispatcher = DispatchMessageCallback.INSTANCE;
-        dispatcher.addHandler(new AbstractFaceSnapHandler() {
+    public void setupDeploy() {
+        DispatchMessageCallback.INSTANCE.addHandler(new AbstractFaceSnapHandler() {
             @Override
             public void handle(FaceSnapEvent event) {
-                System.out.println(event.getDeviceInfo());
-                sign.countDown();
+                System.out.println(event.getDeviceInfo() + ": " + event.getFaceSnapInfo().getFaceScore());
             }
         });
 
-        HikResult<Long> callbackResult = deviceTemplate.registerMessageCallback(token.getUserId(), dispatcher);
+        CountDownLatch sign = new CountDownLatch(1);
+        HikResult<Long> callbackResult = deviceTemplate.setupDeploy(token.getUserId(), DispatchMessageCallback.INSTANCE,
+                PrintDeviceExceptionCallback.INSTANCE);
         assertTrue(callbackResult.isSuccess(), "布防失败: " + callbackResult.getError());
-        sign.await(10, TimeUnit.SECONDS);
+
+        callbackResult = deviceTemplate.setupDeploy(token.getUserId(), DispatchMessageCallback.INSTANCE,
+                PrintDeviceExceptionCallback.INSTANCE);
+        assertTrue(callbackResult.isSuccess(), "布防失败: " + callbackResult.getError());
+
+        sign.await(120, TimeUnit.SECONDS);
     }
 
     @Test

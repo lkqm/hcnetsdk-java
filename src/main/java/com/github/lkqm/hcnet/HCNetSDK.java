@@ -4222,7 +4222,8 @@ DVR实现巡航数据结构
 
     public static interface FExceptionCallBack extends Callback {
 
-        public void invoke(int dwType, NativeLong lUserID, NativeLong lHandle, Pointer pUser);
+        public void invoke(int dwType, NativeLong lUserID, NativeLong lHandle, Pointer pUser)
+                throws InterruptedException;
     }
 
     public static interface FDrawFun extends Callback {

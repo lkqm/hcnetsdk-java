@@ -1,12 +1,10 @@
 # hcnetsdk
-一个对海康网络HCNetSDK二次封装的Java库.
+海康网络HCNetSDK二次封装的Java库.
 
 ## 例子
 ```
-// 时间校准
 HikDevice device = new HikDevice(hcnetsdk, ip, port, user, password);
-device.init();
-device.adjustTime(new Date());
+device.reboot();
 ```
 
 ## 核心
@@ -20,9 +18,9 @@ device.adjustTime(new Date());
 - 注销 (logout)
 - 执行操作 (doAction)
 - 获取错误 (lastError)
+- 布防 (setupDeploy)
 - 透传 (passThrough)
 - 设备配置 (getNvrConfig, setNvrConfig)
-- 消息回调 (registerMessageCallback)
 - 修改密码 (modifyPassword)
 - 校准时间 (adjustTime)
 - 重启设备 (reboot)
