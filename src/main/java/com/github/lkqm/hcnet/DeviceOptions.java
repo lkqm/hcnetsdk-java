@@ -1,5 +1,6 @@
 package com.github.lkqm.hcnet;
 
+import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.sun.jna.Structure;
 import java.util.Date;
@@ -61,4 +62,13 @@ public interface DeviceOptions {
      */
     HikResult reboot();
 
+    /**
+     * 升级设备（同步），注意升级完成后需要手动重启
+     */
+    HikResult<DeviceUpgradeResponse> upgradeSync(String sdkFile);
+
+    /**
+     * 升级设备（异步），注意升级完成后需要手动重启
+     */
+    HikResult<DeviceUpgradeResponse> upgradeASync(String sdkFile);
 }

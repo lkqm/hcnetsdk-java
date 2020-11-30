@@ -4,6 +4,7 @@ import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
+import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
@@ -13,6 +14,8 @@ import com.sun.jna.ptr.NativeLongByReference;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import lombok.Getter;
 import lombok.NonNull;
@@ -354,6 +357,66 @@ public class HikDeviceTemplate {
     public HikResult stopRealPlay(long realHandle) {
         boolean result = hcnetsdk.NET_DVR_StopRealPlay(new NativeLong(realHandle));
         return result ? HikResult.ok() : lastError();
+    }
+
+    /**
+     * 升级设备.
+     */
+    public HikResult<DeviceUpgradeResponse> upgradeAsync(long userId, String sdkFile) {
+        // 请求升级
+        NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade(new NativeLong(userId), sdkFile);
+        if (upgradeHandle.longValue() == -1) {
+            return lastError();
+        }
+
+        // 获取结果, 并关闭资源
+        FutureTask<Integer> future = new FutureTask<>(() -> {
+            int state;
+            do {
+                state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
+                Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+            } while (state == 2);
+            if (state != -1) {
+                hcnetsdk.NET_DVR_CloseUpgradeHandle(upgradeHandle);
+            }
+            return state;
+        });
+        new Thread(future).start();
+
+        DeviceUpgradeResponse response = new DeviceUpgradeResponse();
+        response.setHandle(upgradeHandle.longValue());
+        response.setFuture(future);
+        return HikResult.ok(response);
+    }
+
+    /**
+     * 升级设备同步
+     */
+    @SneakyThrows
+    public HikResult<DeviceUpgradeResponse> upgradeSync(long userId, String sdkFile) {
+        // 请求升级
+        NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade(new NativeLong(userId), sdkFile);
+        if (upgradeHandle.longValue() == -1) {
+            return lastError();
+        }
+
+        // 获取结果，并关闭资源
+        int state;
+        do {
+            state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
+            Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+        } while (state == 2);
+        if (state != -1) {
+            hcnetsdk.NET_DVR_CloseUpgradeHandle(upgradeHandle);
+        }
+
+        DeviceUpgradeResponse response = new DeviceUpgradeResponse();
+        response.setHandle(upgradeHandle.longValue());
+        response.setState(state);
+        if (state == -1) {
+            response.setError(lastError());
+        }
+        return HikResult.ok(response);
     }
 
 }

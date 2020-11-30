@@ -1,6 +1,7 @@
 package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
+import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Structure;
@@ -102,5 +103,15 @@ public class HikDevice implements DeviceOptions {
     @Override
     public HikResult reboot() {
         return deviceTemplate.reboot(token.getUserId());
+    }
+
+    @Override
+    public HikResult<DeviceUpgradeResponse> upgradeSync(String sdkFile) {
+        return deviceTemplate.upgradeSync(token.getUserId(), sdkFile);
+    }
+
+    @Override
+    public HikResult<DeviceUpgradeResponse> upgradeASync(String sdkFile) {
+        return deviceTemplate.upgradeAsync(token.getUserId(), sdkFile);
     }
 }

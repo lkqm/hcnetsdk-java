@@ -21,12 +21,12 @@ device.adjustTime(new Date());
 - 执行操作 (doAction)
 - 获取错误 (lastError)
 - 透传 (passThrough)
+- 设备配置 (getNvrConfig, setNvrConfig)
 - 消息回调 (registerMessageCallback)
 - 修改密码 (modifyPassword)
 - 校准时间 (adjustTime)
 - 重启设备 (reboot)
-- 获取设备配置 (getNvrConfig)
-- 修改设备配置 (setNvrConfig)
+- 升级 (upgradeSync, upgradeAsync)
 - ...
 
 ## 事件
