@@ -4,9 +4,9 @@ import com.github.lkqm.hcnet.HCNetSDK;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_ALARMER;
 import com.github.lkqm.hcnet.HCNetSDK.NET_VCA_HUMAN_FEATURE;
 import com.github.lkqm.hcnet.HCNetSDK.RECV_ALARM;
-import com.github.lkqm.hcnet.JnaUtils;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.FaceSnapInfo;
+import com.github.lkqm.hcnet.util.JnaUtils;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 

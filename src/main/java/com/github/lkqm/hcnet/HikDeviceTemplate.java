@@ -7,6 +7,7 @@ import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
+import com.github.lkqm.hcnet.util.Function;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -15,9 +16,9 @@ import com.sun.jna.ptr.NativeLongByReference;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -386,22 +387,25 @@ public class HikDeviceTemplate {
      */
     public HikResult<DeviceUpgradeResponse> upgradeAsync(long userId, String sdkFile) {
         // 请求升级
-        NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade(new NativeLong(userId), sdkFile);
+        final NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade(new NativeLong(userId), sdkFile);
         if (upgradeHandle.longValue() == -1) {
             return lastError();
         }
 
         // 获取结果, 并关闭资源
-        FutureTask<Integer> future = new FutureTask<>(() -> {
-            int state;
-            do {
-                state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
-                Thread.sleep(TimeUnit.SECONDS.toMillis(30));
-            } while (state == 2);
-            if (state != -1) {
-                hcnetsdk.NET_DVR_CloseUpgradeHandle(upgradeHandle);
+        FutureTask<Integer> future = new FutureTask<>(new Callable<Integer>() {
+            @Override
+            public Integer call() throws Exception {
+                int state;
+                do {
+                    state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+                } while (state == 2);
+                if (state != -1) {
+                    hcnetsdk.NET_DVR_CloseUpgradeHandle(upgradeHandle);
+                }
+                return state;
             }
-            return state;
         });
         new Thread(future).start();
 

@@ -4,10 +4,10 @@ import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
 import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
+import com.github.lkqm.hcnet.util.Function;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Structure;
 import java.util.Date;
-import java.util.function.Function;
 import lombok.Getter;
 
 /**

@@ -13,14 +13,22 @@ import sun.awt.OSInfo;
  */
 public class JnaPathUtils {
 
+    public static final String JNA_PATH_PROPERTY_NAME = "jna.library.path";
+
+    /**
+     * 初始化设置加载目录，只影响开发模式下（非jar运行）
+     */
+    public static void initJnaLibraryPathDev() {
+        initJnaLibraryPath(false);
+    }
+
     /**
      * 检查并设置本地库加载目录系统变量(jna.library.path)，
      * <p>
      * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
-    public static void initJnaLibraryPath() {
-        final String jnaPropertyName = "jna.library.path";
-        String jnaLibPath = System.getProperty(jnaPropertyName);
+    public static void initJnaLibraryPath(boolean effectiveJar) {
+        String jnaLibPath = System.getProperty(JNA_PATH_PROPERTY_NAME);
         boolean isJnaLibEmpty = (jnaLibPath == null || jnaLibPath.trim().length() == 0);
         if (isJnaLibEmpty) {
             Map<OSInfo.OSType, String> libDirMap = new HashMap<>();
@@ -39,7 +47,10 @@ public class JnaPathUtils {
                     throw new IllegalStateException("Not found relation library: " + libDir);
                 }
                 jnaLibPath = uri.getPath();
-                System.setProperty(jnaPropertyName, jnaLibPath);
+                System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
+            } else if (effectiveJar) {
+                jnaLibPath = getJarDirectoryPath() + File.separator + libDir;
+                System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
             }
         }
     }

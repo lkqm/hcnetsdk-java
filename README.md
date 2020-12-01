@@ -1,6 +1,8 @@
 # hcnetsdk
 海康网络HCNetSDK二次封装的Java库.
 
+支持: JDK1.7+
+
 ## 例子
 ```
 HikDevice device = new HikDevice(hcnetsdk, ip, port, user, password);
