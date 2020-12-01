@@ -4,7 +4,7 @@
 
     <groupId>com.github.lkqm</groupId>
     <artifactId>hcnetsdk-java</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2-SNAPSHOT</version>
 
     <name>${project.artifactId}</name>
     <description>海康网络HCNetSDK二次封装的Java库</description>
