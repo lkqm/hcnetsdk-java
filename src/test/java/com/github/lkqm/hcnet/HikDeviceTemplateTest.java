@@ -35,7 +35,7 @@ public class HikDeviceTemplateTest {
 
     @BeforeAll
     public static void beforeAll() {
-        JnaPathUtils.initJnaLibraryPathDev();
+        JnaPathUtils.initJnaLibraryPathDev(HikDeviceTemplateTest.class);
         deviceTemplate = new HikDeviceTemplate(HCNetSDK.INSTANCE);
     }
 

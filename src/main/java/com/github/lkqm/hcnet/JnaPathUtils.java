@@ -18,8 +18,8 @@ public class JnaPathUtils {
     /**
      * 初始化设置加载目录，只影响开发模式下（非jar运行）
      */
-    public static void initJnaLibraryPathDev() {
-        initJnaLibraryPath(false);
+    public static void initJnaLibraryPathDev(Class<?> clazz) {
+        initJnaLibraryPath(clazz, false);
     }
 
     /**
@@ -27,7 +27,8 @@ public class JnaPathUtils {
      * <p>
      * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
-    public static void initJnaLibraryPath(boolean effectiveJar) {
+    public static boolean initJnaLibraryPath(Class<?> clazz, boolean effectiveJar) {
+        boolean modifiedPath = false;
         String jnaLibPath = System.getProperty(JNA_PATH_PROPERTY_NAME);
         boolean isJnaLibEmpty = (jnaLibPath == null || jnaLibPath.trim().length() == 0);
         if (isJnaLibEmpty) {
@@ -41,33 +42,41 @@ public class JnaPathUtils {
                 throw new RuntimeException("Unsupported operator system: " + OSInfo.getOSType().name());
             }
 
-            if (!isRunWithJar()) {
-                URL uri = JnaPathUtils.class.getClassLoader().getResource(libDir);
+            if (!isRunWithJar(clazz)) {
+                URL uri = clazz.getClassLoader().getResource(libDir);
                 if (uri == null) {
                     throw new IllegalStateException("Not found relation library: " + libDir);
                 }
                 jnaLibPath = uri.getPath();
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
+                modifiedPath = true;
             } else if (effectiveJar) {
-                jnaLibPath = getJarDirectoryPath() + File.separator + libDir;
+                jnaLibPath = getJarDirectoryPath(clazz) + File.separator + libDir;
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
+                modifiedPath = true;
             }
         }
+        return modifiedPath;
     }
 
     /**
      * 是否以可执行jar方式启动
      */
-    public static boolean isRunWithJar() {
-        String protocol = JnaPathUtils.class.getResource("").getProtocol();
+    public static boolean isRunWithJar(Class<?> clazz) {
+        URL resource = clazz.getResource("");
+        if (resource == null) {
+            return false;
+        }
+
+        String protocol = resource.getProtocol();
         return "jar".equals(protocol);
     }
 
     /**
      * 获取执行jar所在目录
      */
-    public static String getJarDirectoryPath() {
-        URL url = getLocation(JnaPathUtils.class);
+    public static String getJarDirectoryPath(Class<?> target) {
+        URL url = getLocation(target);
         File file = urlToFile(url);
         return file.getParent();
     }
