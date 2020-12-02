@@ -3,6 +3,7 @@ package com.github.lkqm.hcnet;
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
+import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_POINT_FRAME;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
@@ -443,6 +444,136 @@ public class HikDeviceTemplate {
             response.setError(lastError());
         }
         return HikResult.ok(response);
+    }
+
+    //------------------------ 云台相关 -----------------------------------//
+
+    /**
+     * 云台控制.
+     */
+    public HikResult ptzControl(long userId, int command, int stop, int speed) {
+        boolean result = hcnetsdk.NET_DVR_PTZControlWithSpeed_Other(new NativeLong(userId), new NativeLong(1),
+                command, stop, speed);
+        return result ? HikResult.ok() : lastError();
+    }
+
+    /**
+     * 云台控制开始
+     */
+    public HikResult ptzControlStart(long userId, int command, int speed) {
+        return ptzControl(userId, command, 0, speed);
+    }
+
+    /**
+     * 云台控制停止
+     */
+    public HikResult ptzControlStop(long userId, int command, int speed) {
+        return ptzControl(userId, command, 0, speed);
+    }
+
+
+    /**
+     * 云台点位设置.
+     */
+    public HikResult ptzPresetSet(long userId, int presetIndex) {
+        return ptzPreset(userId, 8, presetIndex);
+    }
+
+    /**
+     * 云台点位清除.
+     */
+    public HikResult ptzPresetClean(long userId, int presetIndex) {
+        return ptzPreset(userId, 9, presetIndex);
+    }
+
+    /**
+     * 云台点位跳转.
+     */
+    public HikResult ptzPresetGoto(long userId, int presetIndex) {
+        return ptzPreset(userId, 39, presetIndex);
+    }
+
+    /**
+     * 云台点位控制.
+     */
+    public HikResult ptzPreset(long userId, int presetCommand, int presetIndex) {
+        boolean result = hcnetsdk.NET_DVR_PTZPreset_Other(new NativeLong(userId), new NativeLong(1),
+                presetCommand, presetIndex);
+        return result ? HikResult.ok() : lastError();
+    }
+
+    /**
+     * 云台巡航。
+     */
+    public HikResult ptzCruise(long userId, int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
+        boolean result = hcnetsdk
+                .NET_DVR_PTZCruise_Other(new NativeLong(userId), new NativeLong(1), cruiseCommand,
+                        (byte) cruiseRoute, (byte) cruisePoint, (byte) speed);
+        return result ? HikResult.ok() : lastError();
+    }
+
+    /**
+     * 云台巡航运行.
+     */
+    public HikResult ptzCruiseRun(long userId, int cruiseRoute) {
+        return ptzCruise(userId, 37, cruiseRoute, 0, 0);
+    }
+
+    /**
+     * 云台巡航运行.
+     */
+    public HikResult ptzCruiseStop(long userId, int cruiseRoute) {
+        return ptzCruise(userId, 38, cruiseRoute, 0, 0);
+    }
+
+    /**
+     * 云台巡航添加点位.
+     */
+    public HikResult ptzCruiseFillPreset(long userId, int cruiseRoute, int cruisePoint, int speed) {
+        return ptzCruise(userId, 30, cruiseRoute, cruisePoint, speed);
+    }
+
+    /**
+     * 云台轨迹操作。
+     */
+    public HikResult ptzTrack(long userId, int trackCommand) {
+        boolean result = hcnetsdk.NET_DVR_PTZTrack_Other(new NativeLong(userId), new NativeLong(1), trackCommand);
+        return result ? HikResult.ok() : lastError();
+    }
+
+    /**
+     * 云台轨迹开始记录.
+     */
+    public HikResult ptzTrackStartRecord(long userId) {
+        return ptzTrack(userId, 34);
+    }
+
+    /**
+     * 云台轨迹停止记录.
+     */
+    public HikResult ptzTrackStopRecord(long userId) {
+        return ptzTrack(userId, 35);
+    }
+
+    /**
+     * 云台轨迹运行.
+     */
+    public HikResult ptzTrackRun(long userId) {
+        return ptzTrack(userId, 35);
+    }
+
+    /**
+     * 云台图像缩放.
+     */
+    public HikResult ptzZoom(long userId, int xTop, int yTop, int xBottom, int yBottom) {
+        NET_DVR_POINT_FRAME point = new NET_DVR_POINT_FRAME();
+        point.xTop = xTop;
+        point.yTop = yTop;
+        point.xBottom = xBottom;
+        point.yBottom = yBottom;
+        point.write();
+        boolean result = hcnetsdk.NET_DVR_PTZSelZoomIn_EX(new NativeLong(userId), new NativeLong(1), point);
+        return result ? HikResult.ok() : lastError();
     }
 
 }

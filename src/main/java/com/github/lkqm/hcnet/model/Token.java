@@ -1,5 +1,6 @@
 package com.github.lkqm.hcnet.model;
 
+import com.sun.jna.NativeLong;
 import java.io.Serializable;
 import lombok.Builder;
 import lombok.Data;
@@ -20,5 +21,9 @@ public class Token implements Serializable {
      * 设备序列号
      */
     private final String deviceSerialNumber;
+
+    public NativeLong getUserIdNativeLong() {
+        return new NativeLong(userId);
+    }
 
 }

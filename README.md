@@ -27,6 +27,7 @@ device.reboot();
 - 校准时间 (adjustTime)
 - 重启设备 (reboot)
 - 升级 (upgradeSync, upgradeAsync)
+- 云台控制 (ptzXxx)
 - ...
 
 ## 事件

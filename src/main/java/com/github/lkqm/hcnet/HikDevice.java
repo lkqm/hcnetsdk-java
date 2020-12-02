@@ -166,4 +166,148 @@ public class HikDevice implements DeviceOptions {
         }
         return deviceTemplate.upgradeAsync(token.getUserId(), sdkFile);
     }
+
+    @Override
+    public HikResult ptzControl(int command, int stop, int speed) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzControl(token.getUserId(), command, stop, speed);
+    }
+
+    @Override
+    public HikResult ptzControlStart(int command, int speed) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzControlStart(token.getUserId(), command, speed);
+    }
+
+    @Override
+    public HikResult ptzControlStop(int command, int speed) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzControlStop(token.getUserId(), command, speed);
+    }
+
+    @Override
+    public HikResult ptzPresetSet(int presetIndex) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzPresetSet(token.getUserId(), presetIndex);
+    }
+
+    @Override
+    public HikResult ptzPresetClean(int presetIndex) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzPresetClean(token.getUserId(), presetIndex);
+    }
+
+    @Override
+    public HikResult ptzPresetGoto(int presetIndex) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzPresetGoto(token.getUserId(), presetIndex);
+    }
+
+    @Override
+    public HikResult ptzPreset(int presetCommand, int presetIndex) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzPreset(token.getUserId(), presetCommand, presetIndex);
+    }
+
+    @Override
+    public HikResult ptzCruise(int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzCruise(token.getUserId(), cruiseCommand, cruiseRoute, cruisePoint, speed);
+    }
+
+    @Override
+    public HikResult ptzCruiseRun(int cruiseRoute) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzCruiseRun(token.getUserId(), cruiseRoute);
+    }
+
+    @Override
+    public HikResult ptzCruiseStop(int cruiseRoute) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzCruiseStop(token.getUserId(), cruiseRoute);
+    }
+
+    @Override
+    public HikResult ptzCruiseFillPreset(int cruiseRoute, int cruisePoint, int speed) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzCruiseFillPreset(token.getUserId(), cruiseRoute, cruisePoint, speed);
+    }
+
+    @Override
+    public HikResult ptzTrack(int trackCommand) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzTrack(token.getUserId(), trackCommand);
+    }
+
+    @Override
+    public HikResult ptzTrackStartRecord() {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzTrackStartRecord(token.getUserId());
+    }
+
+    @Override
+    public HikResult ptzTrackStopRecord() {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzTrackStopRecord(token.getUserId());
+    }
+
+    @Override
+    public HikResult ptzTrackRun() {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzTrackRun(token.getUserId());
+    }
+
+    @Override
+    public HikResult ptzZoom(int xTop, int yTop, int xBottom, int yBottom) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.ptzZoom(token.getUserId(), xTop, yTop, xBottom, yBottom);
+    }
 }
