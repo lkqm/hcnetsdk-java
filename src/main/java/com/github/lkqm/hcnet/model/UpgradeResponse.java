@@ -2,31 +2,34 @@ package com.github.lkqm.hcnet.model;
 
 import com.github.lkqm.hcnet.HikResult;
 import java.io.Serializable;
-import java.util.concurrent.Future;
 import lombok.Data;
 
 /**
  * 设备升级结果
  */
 @Data
-public class DeviceUpgradeResponse implements Serializable {
+public class UpgradeResponse implements Serializable {
 
     /**
      * 升级的句柄
      */
     private long handle;
 
-    private Future<Integer> future;
-
     /**
-     * 同步升级状态
+     * 升级状态
      */
     private int state;
 
     /**
-     * 同步升级错误
+     * 升级错误, 当state = -1时
      */
     private HikResult<?> error;
 
+    /**
+     * 是否升级成功.
+     */
+    public boolean isUpgradeSuccess() {
+        return state == 1;
+    }
 
 }

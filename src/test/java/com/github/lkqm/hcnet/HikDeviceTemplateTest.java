@@ -10,9 +10,9 @@ import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_TIME;
 import com.github.lkqm.hcnet.callback.PrintDeviceExceptionCallback;
 import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
-import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.FaceSnapEvent;
 import com.github.lkqm.hcnet.model.Token;
+import com.github.lkqm.hcnet.model.UpgradeResponse;
 import com.sun.jna.NativeLong;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
@@ -133,10 +133,10 @@ public class HikDeviceTemplateTest {
 
     @Test
     void upgradeSync() {
-        HikResult<DeviceUpgradeResponse> result = deviceTemplate.upgradeSync(token.getUserId(),
+        HikResult<UpgradeResponse> result = deviceTemplate.upgradeSync(token.getUserId(),
                 "C:\\appfile\\downlods\\digicap.dav");
         assertTrue(result.isSuccess(), "请求升级: " + result.getErrorMsg());
-        DeviceUpgradeResponse upgradeResponse = result.getData();
+        UpgradeResponse upgradeResponse = result.getData();
         assertEquals(1, upgradeResponse.getState(), "升级结果: " + upgradeResponse.getState());
     }
 

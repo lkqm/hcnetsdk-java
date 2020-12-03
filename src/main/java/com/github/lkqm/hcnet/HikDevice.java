@@ -2,8 +2,9 @@ package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
-import com.github.lkqm.hcnet.model.DeviceUpgradeResponse;
 import com.github.lkqm.hcnet.model.Token;
+import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
+import com.github.lkqm.hcnet.model.UpgradeResponse;
 import com.github.lkqm.hcnet.util.Function;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Structure;
@@ -150,7 +151,7 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult<DeviceUpgradeResponse> upgradeSync(String sdkFile) {
+    public HikResult<UpgradeResponse> upgradeSync(String sdkFile) {
         HikResult init = init();
         if (!init.isSuccess()) {
             return init;
@@ -159,7 +160,7 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult<DeviceUpgradeResponse> upgradeASync(String sdkFile) {
+    public HikResult<UpgradeAsyncResponse> upgradeAsync(String sdkFile) {
         HikResult init = init();
         if (!init.isSuccess()) {
             return init;

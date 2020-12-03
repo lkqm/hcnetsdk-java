@@ -27,7 +27,7 @@ public class HikResult<T> {
         return new HikResult<>(true, null, null, data);
     }
 
-    public static HikResult fail(int code, String msg) {
+    public static <T> HikResult<T> fail(int code, String msg) {
         return new HikResult<>(false, code, msg, null);
     }
 
