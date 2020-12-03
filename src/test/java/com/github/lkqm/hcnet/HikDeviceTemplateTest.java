@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_TIME;
 import com.github.lkqm.hcnet.callback.PrintDeviceExceptionCallback;
-import com.github.lkqm.hcnet.handler.AbstractFaceSnapHandler;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
-import com.github.lkqm.hcnet.model.FaceSnapEvent;
+import com.github.lkqm.hcnet.handler.FaceSnapFileStoreHandler;
+import com.github.lkqm.hcnet.handler.VideoFileStoreCallback;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
 import com.sun.jna.NativeLong;
@@ -29,7 +29,7 @@ public class HikDeviceTemplateTest {
     private final String ip = "192.168.0.123";
     private final int port = HikDeviceTemplate.DEFAULT_PORT;
     private final String user = "admin";
-    private final String password = "hik123456";
+    private final String password = "wxb888888";
     private Token token;
 
     static HikDeviceTemplate deviceTemplate;
@@ -92,12 +92,7 @@ public class HikDeviceTemplateTest {
     @SneakyThrows
     @Test
     void setupDeploy() {
-        DispatchMessageCallback.INSTANCE.addHandler(new AbstractFaceSnapHandler() {
-            @Override
-            public void handle(FaceSnapEvent event) {
-                System.out.println(event.getDeviceInfo() + ": " + event.getFaceSnapInfo().getFaceScore());
-            }
-        });
+        DispatchMessageCallback.INSTANCE.addHandler(new FaceSnapFileStoreHandler("/appfile/snap"));
 
         CountDownLatch sign = new CountDownLatch(1);
         HikResult<Long> callbackResult = deviceTemplate.setupDeploy(token.getUserId(), DispatchMessageCallback.INSTANCE,
@@ -129,6 +124,17 @@ public class HikDeviceTemplateTest {
                 .getDvrConfig(token.getUserId(), 0, HCNetSDK.NET_DVR_GET_TIMECFG, NET_DVR_TIME.class);
         assertTrue(result.isSuccess(), "获取配置: " + result.getErrorMsg());
         result.getData().clear();
+    }
+
+    static VideoFileStoreCallback callback;
+
+    @Test
+    @SneakyThrows
+    void realPlay() {
+        callback = new VideoFileStoreCallback("/appfile/video");
+        HikResult<Long> result = deviceTemplate.realPlay(token.getUserId(), callback);
+        assertTrue(result.isSuccess(), "视频预览失败: " + result.getError());
+        Thread.sleep(100000);
     }
 
     @Test
