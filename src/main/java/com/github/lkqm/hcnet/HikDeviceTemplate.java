@@ -6,6 +6,8 @@ import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_POINT_FRAME;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
+import com.github.lkqm.hcnet.model.PassThroughResponse;
+import com.github.lkqm.hcnet.model.ResponseStatus;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
@@ -124,51 +126,71 @@ public class HikDeviceTemplate {
     /**
      * 设备透传, 实现数据获取或配置修改.
      */
-    public HikResult<String> passThrough(long userId, String url, String input) {
-        //透传
-        HCNetSDK.NET_DVR_STRING_POINTER stringRequest = new HCNetSDK.NET_DVR_STRING_POINTER();
-        stringRequest.read();
-        stringRequest.byString = url.getBytes();
-        stringRequest.write();
-
-        HCNetSDK.NET_DVR_STRING_POINTER stringInBuffer = new HCNetSDK.NET_DVR_STRING_POINTER();
-        stringInBuffer.read();
-        String strInbuffer = null == input ? "" : input;
-        stringInBuffer.byString = strInbuffer.getBytes();
-        stringInBuffer.write();
-
-        HCNetSDK.NET_DVR_XML_CONFIG_INPUT struXMLInput = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
-        struXMLInput.read();
-        struXMLInput.dwSize = struXMLInput.size();
-        struXMLInput.lpRequestUrl = stringRequest.getPointer();
-        struXMLInput.dwRequestUrlLen = stringRequest.byString.length;
-        struXMLInput.lpInBuffer = stringInBuffer.getPointer();
-        struXMLInput.dwInBufferSize = stringInBuffer.byString.length;
-        struXMLInput.write();
-
-        HCNetSDK.NET_DVR_STRING_POINTER stringXMLOut = new HCNetSDK.NET_DVR_STRING_POINTER();
-        stringXMLOut.read();
-        HCNetSDK.NET_DVR_STRING_POINTER struXMLStatus = new HCNetSDK.NET_DVR_STRING_POINTER();
-        struXMLStatus.read();
-
-        HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT struXMLOutput = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
-        stringInBuffer.read();
-        struXMLOutput.dwSize = struXMLOutput.size();
-        struXMLOutput.lpOutBuffer = stringXMLOut.getPointer();
-        struXMLOutput.dwOutBufferSize = stringXMLOut.size();
-        struXMLOutput.lpStatusBuffer = struXMLStatus.getPointer();
-        struXMLOutput.dwStatusSize = struXMLStatus.size();
-        stringInBuffer.write();
-
-        boolean result = hcnetsdk.NET_DVR_STDXMLConfig(new NativeLong(userId), struXMLInput, struXMLOutput);
-        if (!result) {
-            return lastError();
-        }
-        stringXMLOut.read();
-        String strOutXML = new String(stringXMLOut.byString).trim();
-        struXMLStatus.read();
-        return HikResult.ok(strOutXML);
+    public HikResult<PassThroughResponse> passThrough(long userId, String url, String input) {
+        byte[] bytes = input == null ? null : input.getBytes();
+        return passThrough(userId, url, bytes, 3 * 1024 * 1024);
     }
+
+    /**
+     * 设备透传, 实现数据获取或配置修改.
+     */
+    public HikResult<PassThroughResponse> passThrough(long userId, String url, byte[] inputBytes,
+            int exceptOutByteSize) {
+        byte[] urlBytes = url.getBytes();
+        inputBytes = (inputBytes == null || inputBytes.length == 0) ? " ".getBytes() : inputBytes;
+        // 输入参数
+        HCNetSDK.NET_DVR_STRING_POINTER urlPointer = new HCNetSDK.NET_DVR_STRING_POINTER();
+        urlPointer.byString = urlBytes;
+        urlPointer.write();
+
+        HCNetSDK.NET_DVR_STRING_POINTER inputPointer = new HCNetSDK.NET_DVR_STRING_POINTER();
+        inputPointer.byString = inputBytes;
+        inputPointer.write();
+
+        HCNetSDK.NET_DVR_XML_CONFIG_INPUT inputParams = new HCNetSDK.NET_DVR_XML_CONFIG_INPUT();
+        inputParams.dwSize = inputParams.size();
+        inputParams.lpRequestUrl = urlPointer.getPointer();
+        inputParams.dwRequestUrlLen = urlPointer.byString.length;
+        inputParams.lpInBuffer = inputPointer.getPointer();
+        inputParams.dwInBufferSize = inputPointer.byString.length;
+        inputParams.write();
+
+        // 输出参数
+        HCNetSDK.NET_DVR_STRING_POINTER outputPointer = new HCNetSDK.NET_DVR_STRING_POINTER();
+        outputPointer.byString = new byte[exceptOutByteSize];
+        HCNetSDK.NET_DVR_STRING_POINTER outputStatusPointer = new HCNetSDK.NET_DVR_STRING_POINTER();
+
+        HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT outputParams = new HCNetSDK.NET_DVR_XML_CONFIG_OUTPUT();
+        outputParams.dwSize = outputParams.size();
+        outputParams.lpOutBuffer = outputPointer.getPointer();
+        outputParams.dwOutBufferSize = outputPointer.size();
+        outputParams.lpStatusBuffer = outputStatusPointer.getPointer();
+        outputParams.dwStatusSize = outputStatusPointer.size();
+        inputPointer.write();
+
+        // 透传
+        boolean result = hcnetsdk.NET_DVR_STDXMLConfig(new NativeLong(userId), inputParams, outputParams);
+        outputPointer.read();
+        outputStatusPointer.read();
+        byte[] data = outputPointer.byString;
+        byte[] statusData = outputStatusPointer.byString;
+        String statusXml = new String(statusData).trim();
+
+        HikResult<PassThroughResponse> hikResult = new HikResult<>();
+        PassThroughResponse response = new PassThroughResponse();
+        if (!result) {
+            HikResult error = lastError();
+            hikResult.set(error);
+            response.setResponseStatus(ResponseStatus.ofXml(statusXml));
+        } else {
+            hikResult.setSuccess(true);
+            response.setData(data);
+        }
+
+        hikResult.setData(response);
+        return hikResult;
+    }
+
 
     /**
      * 布防.

@@ -2,6 +2,7 @@ package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
+import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
@@ -97,7 +98,7 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult<String> passThrough(String url, String data) {
+    public HikResult<PassThroughResponse> passThrough(String url, String data) {
         HikResult init = init();
         if (!init.isSuccess()) {
             return init;

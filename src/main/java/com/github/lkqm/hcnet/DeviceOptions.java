@@ -1,6 +1,7 @@
 package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
+import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
@@ -36,8 +37,10 @@ public interface DeviceOptions {
 
     /**
      * 透传.
+     *
+     * @return
      */
-    HikResult<String> passThrough(String url, String data);
+    HikResult<PassThroughResponse> passThrough(String url, String data);
 
     /**
      * 获取设备配置.

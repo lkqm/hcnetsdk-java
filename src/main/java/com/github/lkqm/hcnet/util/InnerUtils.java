@@ -3,10 +3,22 @@ package com.github.lkqm.hcnet.util;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.TimeZone;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import lombok.SneakyThrows;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 public class InnerUtils {
 
@@ -62,6 +74,40 @@ public class InnerUtils {
     public static String formatDate(Date date, String format) {
         SimpleDateFormat sdf = new SimpleDateFormat(format);
         return sdf.format(date);
+    }
+
+    /**
+     * 转换xml为map
+     */
+    @SneakyThrows
+    public static Map<String, String> xmlToMap(String xml, String rootElement) {
+        Map<String, String> map = new HashMap<>();
+        Document doc = parseXmlString(xml);
+
+        NodeList rootNode = doc.getElementsByTagName(rootElement);
+        if (rootNode == null || rootNode.getLength() == 0) {
+            return map;
+        }
+
+        Node root = rootNode.item(0);
+        NodeList nodes = root.getChildNodes();
+        if (nodes == null) {
+            return map;
+        }
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Node node = nodes.item(i);
+            map.put(node.getNodeName(), node.getTextContent());
+        }
+        return map;
+    }
+
+    private static Document parseXmlString(String xmlStr)
+            throws ParserConfigurationException, IOException, SAXException {
+        InputSource is = new InputSource(new StringReader(xmlStr));
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder builder = factory.newDocumentBuilder();
+        Document doc = builder.parse(is);
+        return doc;
     }
 
 }

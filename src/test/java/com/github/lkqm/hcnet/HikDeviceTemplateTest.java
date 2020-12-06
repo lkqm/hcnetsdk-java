@@ -11,9 +11,9 @@ import com.github.lkqm.hcnet.callback.PrintDeviceExceptionCallback;
 import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.handler.FaceSnapFileStoreHandler;
 import com.github.lkqm.hcnet.handler.VideoFileStoreCallback;
+import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
-import com.sun.jna.NativeLong;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -26,10 +26,10 @@ import org.junit.jupiter.api.Test;
 @SuppressWarnings("rawtypes")
 public class HikDeviceTemplateTest {
 
-    private final String ip = "192.168.0.123";
+    private final String ip = "192.168.0.239";
     private final int port = HikDeviceTemplate.DEFAULT_PORT;
     private final String user = "admin";
-    private final String password = "wxb888888";
+    private final String password = "hik12345+";
     private Token token;
 
     static HikDeviceTemplate deviceTemplate;
@@ -56,12 +56,24 @@ public class HikDeviceTemplateTest {
 
     @Test
     void test() {
-        HCNetSDK hcnetsdk = deviceTemplate.getHcnetsdk();
-        boolean result = hcnetsdk.NET_DVR_PTZControl_Other(new NativeLong(token.getUserId()), new NativeLong(1), 2, 0);
-        if (!result) {
-            HikResult error = deviceTemplate.lastError();
-            System.out.println(error);
-        }
+        HikDevice hikDevice = new HikDevice(HCNetSDK.INSTANCE, "192.168.0.233", 8000, "admin", "XH123456");
+        String xml = "<FCSearchDescription version=\"2.0\" xmlns=\"http://www.std-cgi.org/ver20/XMLSchema\"> \n"
+                + "  <!--req,人脸比对数据查询条件--> \n"
+                + "  <searchID> \n"
+                + "1"
+                + "  </searchID> \n"
+                + "  <searchResultPosition> \n"
+                + "   0 "
+                + "  </searchResultPosition> \n"
+                + "  <maxResults> \n"
+                + "    4 \n"
+                + "  </maxResults> \n"
+                + "  <snapStartTime> \n"
+                + "    2019-10-12T00:00:00Z \n"
+                + "  </snapStartTime> \n";
+        HikResult<PassThroughResponse> result = hikDevice
+                .passThrough("POST /ISAPI/Intelligent/FDLib/FCSearch/dataPackage", xml);
+        System.out.println(result);
     }
 
     @Test
@@ -104,6 +116,37 @@ public class HikDeviceTemplateTest {
         assertTrue(callbackResult.isSuccess(), "布防失败: " + callbackResult.getError());
 
         sign.await(120, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void passThrough() {
+        String xml =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?><DeviceInfo xmlns=\"http://www.hikvision.com/ver20/XMLSchema\" version=\"2.0\">\n"
+                        + "<deviceName>IP CAMERA</deviceName>\n"
+                        + "<deviceID>d9b04000-d0fb-11b2-80e4-988b0a0e517f</deviceID>\n"
+                        + "<deviceDescription>IPCamera</deviceDescription>\n"
+                        + "<deviceLocation>hangzhou</deviceLocation>\n"
+                        + "<systemContact>Hikvision.China</systemContact>\n"
+                        + "<model>DS-2CD7A47FWD-XZS</model>\n"
+                        + "<serialNumber>DS-2CD7A47FWD-XZS20190228AACHC96234444</serialNumber>\n"
+                        + "<macAddress>98:8b:0a:0e:51:7f</macAddress>\n"
+                        + "<firmwareVersion>V5.6.1</firmwareVersion>\n"
+                        + "<firmwareReleasedDate>build 190603</firmwareReleasedDate>\n"
+                        + "<encoderVersion>V7.3</encoderVersion>\n"
+                        + "<encoderReleasedDate>build 190527</encoderReleasedDate>\n"
+                        + "<bootVersion>V1.3.4</bootVersion>\n"
+                        + "<bootReleasedDate>100316</bootReleasedDate>\n"
+                        + "<hardwareVersion>0x0</hardwareVersion>\n"
+                        + "<deviceType>IPCamera</deviceType>\n"
+                        + "<telecontrolID>88</telecontrolID>\n"
+                        + "<supportBeep>false</supportBeep>\n"
+                        + "<supportVideoLoss>false</supportVideoLoss>\n"
+                        + "<firmwareVersionInfo>B-R-H3-0</firmwareVersionInfo>\n"
+                        + "</DeviceIno>";
+        HikResult<PassThroughResponse> result = deviceTemplate
+                .passThrough(token.getUserId(), "PUT /ISAPI/System/deviceInfo", xml);
+        assertTrue(result.isSuccess(), "透传失败: " + result.getError());
+        System.out.println(result.getData());
     }
 
     @Test
