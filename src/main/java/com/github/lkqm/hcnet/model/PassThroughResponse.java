@@ -24,7 +24,7 @@ public class PassThroughResponse implements Serializable {
      */
     public String getStringData() {
         if (data != null) {
-            return new String(data);
+            return new String(data).trim();
         }
         return null;
     }

@@ -5,6 +5,7 @@ import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_POINT_FRAME;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
+import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.ResponseStatus;
@@ -28,10 +29,10 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 
 /**
- * 海康SDK工具类
+ * 海康SDK工具类.
  */
 @SuppressWarnings("rawtypes")
-public class HikDeviceTemplate {
+public class HikDeviceTemplate implements DeviceTemplateOptions {
 
     public static final int DEFAULT_PORT = 8000;
 
@@ -44,9 +45,7 @@ public class HikDeviceTemplate {
         this.hcnetsdk = hcnetsdk;
     }
 
-    /**
-     * 登录设备
-     */
+    @Override
     public HikResult<Token> login(String ip, int port, String user, String password) {
         HCNetSDK.NET_DVR_USER_LOGIN_INFO loginInfo = new NET_DVR_USER_LOGIN_INFO();
         System.arraycopy(ip.getBytes(), 0, loginInfo.sDeviceAddress, 0, ip.length());
@@ -70,9 +69,7 @@ public class HikDeviceTemplate {
         return HikResult.ok(token);
     }
 
-    /**
-     * 注销登录
-     */
+    @Override
     public HikResult logout(long userId) {
         if (userId > -1) {
             boolean result = hcnetsdk.NET_DVR_Logout(new NativeLong(userId));
@@ -83,9 +80,7 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * 执行动作
-     */
+    @Override
     public HikResult doAction(String ip, int port, String user, String password,
             Function<Token, HikResult> action) {
         HikResult<Token> loginResult = login(ip, port, user, password);
@@ -105,9 +100,7 @@ public class HikDeviceTemplate {
         }
     }
 
-    /**
-     * 获取最后的错误的执行结果
-     */
+    @Override
     public HikResult lastError() {
         int code = hcnetsdk.NET_DVR_GetLastError();
         if (code == 0) {
@@ -123,17 +116,13 @@ public class HikDeviceTemplate {
         return HikResult.fail(code, msg);
     }
 
-    /**
-     * 设备透传, 实现数据获取或配置修改.
-     */
+    @Override
     public HikResult<PassThroughResponse> passThrough(long userId, String url, String input) {
         byte[] bytes = input == null ? null : input.getBytes();
         return passThrough(userId, url, bytes, 3 * 1024 * 1024);
     }
 
-    /**
-     * 设备透传, 实现数据获取或配置修改.
-     */
+    @Override
     public HikResult<PassThroughResponse> passThrough(long userId, String url, byte[] inputBytes,
             int exceptOutByteSize) {
         byte[] urlBytes = url.getBytes();
@@ -181,7 +170,9 @@ public class HikDeviceTemplate {
         if (!result) {
             HikResult error = lastError();
             hikResult.set(error);
-            response.setResponseStatus(ResponseStatus.ofXml(statusXml));
+            if (statusXml.trim().length() > 0) {
+                response.setResponseStatus(ResponseStatus.ofXml(statusXml));
+            }
         } else {
             hikResult.setSuccess(true);
             response.setData(data);
@@ -192,11 +183,7 @@ public class HikDeviceTemplate {
     }
 
 
-    /**
-     * 布防.
-     * <p>
-     * 包括3个步骤: a.设置回调消息, b.建立上传通道, c.设置异常回调.
-     */
+    @Override
     public HikResult<Long> setupDeploy(long userId, HCNetSDK.FMSGCallBack messageCallback,
             FExceptionCallBack exceptionCallback) {
         // 消息回调
@@ -226,9 +213,7 @@ public class HikDeviceTemplate {
     }
 
 
-    /**
-     * 重启设备.
-     */
+    @Override
     public HikResult reboot(long userId) {
         boolean rebootResult = hcnetsdk.NET_DVR_RebootDVR(new NativeLong(userId));
         if (!rebootResult) {
@@ -237,15 +222,12 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * 修改设备密码.
-     */
+    @Override
     public HikResult modifyPassword(long userId, String username, String newPassword) {
         // 获取原始配置
-        HCNetSDK.NET_DVR_USER_V30 test = new HCNetSDK.NET_DVR_USER_V30();
-        test.write();
+        HCNetSDK.NET_DVR_USER_V30 dvrUser = new HCNetSDK.NET_DVR_USER_V30();
         boolean getResult = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_GET_USERCFG_V30,
-                new NativeLong(0), test.getPointer(), test.size(), new IntByReference(0));
+                new NativeLong(0), dvrUser.getPointer(), dvrUser.size(), new IntByReference(0));
         if (!getResult) {
             HikResult errorResult = lastError();
             errorResult.setSuccess(false);
@@ -253,16 +235,16 @@ public class HikDeviceTemplate {
         }
 
         // 修改指定用户密码
-        test.read();
-        for (HCNetSDK.NET_DVR_USER_INFO_V30 userInfo : test.struUser) {
+        dvrUser.read();
+        for (HCNetSDK.NET_DVR_USER_INFO_V30 userInfo : dvrUser.struUser) {
             String name = new String(userInfo.sUserName).trim();
             if (Objects.equals(username, name)) {
                 userInfo.sPassword = newPassword.getBytes();
             }
         }
-        test.write();
+        dvrUser.write();
         boolean setResult = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_SET_USERCFG_V30,
-                new NativeLong(0), test.getPointer(), test.dwSize);
+                new NativeLong(0), dvrUser.getPointer(), dvrUser.dwSize);
         if (!setResult) {
             HikResult errorResult = lastError();
             errorResult.setSuccess(false);
@@ -271,9 +253,7 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * NVR重新绑定通道, 抓拍机修改密码后需要重新绑定.
-     */
+    @Override
     public HikResult nvrRebindChannels(long userId, String dvrUsername, String dvrNewPassword) {
         // 获取已绑定通道配置
         IntByReference ibrBytesReturned = new IntByReference(0);
@@ -310,9 +290,7 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * 设备校时
-     */
+    @Override
     public HikResult adjustTime(long userId, Date time) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(time);
@@ -327,9 +305,7 @@ public class HikDeviceTemplate {
         return setDvrConfig(userId, 0, HCNetSDK.NET_DVR_SET_TIMECFG, netDvrTime);
     }
 
-    /**
-     * 获取设备配置数据.
-     */
+    @Override
     @SneakyThrows
     public <T extends Structure> HikResult<T> getDvrConfig(long userId, long channel, int command,
             Class<T> clazz) {
@@ -344,9 +320,7 @@ public class HikDeviceTemplate {
         return HikResult.ok(data);
     }
 
-    /**
-     * 获取设备配置数据.
-     */
+    @Override
     public HikResult getDvrConfig(long userId, long channel, int command, Structure data) {
         data.write();
         boolean result = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
@@ -358,9 +332,7 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * 设置设备配置数据.
-     */
+    @Override
     public HikResult setDvrConfig(long userId, long channel, int command, Structure data) {
         data.write();
         boolean result = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
@@ -371,9 +343,7 @@ public class HikDeviceTemplate {
         return HikResult.ok();
     }
 
-    /**
-     * 设置视频实时预览
-     */
+    @Override
     public HikResult<Long> realPlay(long userId, FRealDataCallBack_V30 callback) {
         HCNetSDK.NET_DVR_PREVIEWINFO previewInfo = new HCNetSDK.NET_DVR_PREVIEWINFO();
         previewInfo.lChannel = new NativeLong(1);
@@ -386,9 +356,7 @@ public class HikDeviceTemplate {
         return realPlay(userId, previewInfo, callback);
     }
 
-    /**
-     * 设置实时预览
-     */
+    @Override
     public HikResult<Long> realPlay(long userId, NET_DVR_PREVIEWINFO previewInfo,
             FRealDataCallBack_V30 callback) {
         NativeLong realPlayHandle = hcnetsdk.NET_DVR_RealPlay_V40(new NativeLong(userId), previewInfo, callback, null);
@@ -398,20 +366,31 @@ public class HikDeviceTemplate {
         return HikResult.ok(realPlayHandle.longValue());
     }
 
-    /**
-     * 停止实时预览
-     */
+    @Override
     public HikResult stopRealPlay(long realHandle) {
         boolean result = hcnetsdk.NET_DVR_StopRealPlay(new NativeLong(realHandle));
         return result ? HikResult.ok() : lastError();
     }
 
-    /**
-     * 升级设备.
-     */
-    public HikResult<UpgradeAsyncResponse> upgradeAsync(long userId, String sdkFile) {
+    //------------------------ 升级相关 -----------------------------------//
+
+    @Override
+    @SneakyThrows
+    public HikResult<UpgradeResponse> upgradeSync(long userId, NET_DVR_UPGRADE_PARAM upgradeParam) {
+        HikResult<UpgradeAsyncResponse> upgradeResult = this.upgradeAsync(userId, upgradeParam);
+        if (!upgradeResult.isSuccess()) {
+            return HikResult.fail(upgradeResult.getErrorCode(), upgradeResult.getErrorMsg());
+        }
+        UpgradeAsyncResponse asyncResponse = upgradeResult.getData();
+        UpgradeResponse response = asyncResponse.getFuture().get();
+        return HikResult.ok(response);
+    }
+
+    @Override
+    public HikResult<UpgradeAsyncResponse> upgradeAsync(long userId, NET_DVR_UPGRADE_PARAM upgradeParam) {
         // 请求升级
-        final NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade(new NativeLong(userId), sdkFile);
+        upgradeParam.write();
+        final NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade_V50(new NativeLong(userId), upgradeParam);
         if (upgradeHandle.longValue() == -1) {
             return lastError();
         }
@@ -423,7 +402,7 @@ public class HikDeviceTemplate {
                 int state;
                 int errorTimes = 0;
                 do {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+                    Thread.sleep(TimeUnit.SECONDS.toMillis(15));
                     state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
                     if (state == -1) {
                         errorTimes++;
@@ -451,12 +430,10 @@ public class HikDeviceTemplate {
         return HikResult.ok(response);
     }
 
-    /**
-     * 升级设备同步
-     */
+    @Override
     @SneakyThrows
-    public HikResult<UpgradeResponse> upgradeSync(long userId, String sdkFile) {
-        HikResult<UpgradeAsyncResponse> upgradeResult = this.upgradeAsync(userId, sdkFile);
+    public HikResult<UpgradeResponse> upgradeDvrSync(long userId, String sdkPath) {
+        HikResult<UpgradeAsyncResponse> upgradeResult = this.upgradeDvrAsync(userId, sdkPath);
         if (!upgradeResult.isSuccess()) {
             return HikResult.fail(upgradeResult.getErrorCode(), upgradeResult.getErrorMsg());
         }
@@ -465,65 +442,77 @@ public class HikDeviceTemplate {
         return HikResult.ok(response);
     }
 
+    @Override
+    public HikResult<UpgradeAsyncResponse> upgradeDvrAsync(long userId, String sdkPath) {
+        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
+        upgradeParam.dwUpgradeType = 0;
+        upgradeParam.sFilename = sdkPath;
+        return upgradeAsync(userId, upgradeParam);
+    }
+
+    @Override
+    public HikResult<UpgradeResponse> upgradeAcsSync(long userId, String sdkPath, int deviceNo) {
+        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
+        upgradeParam.dwUpgradeType = 0;
+        upgradeParam.sFilename = sdkPath;
+        upgradeParam.pInbuffer = new IntByReference(deviceNo).getPointer();
+        upgradeParam.dwBufferLen = 4;
+        return upgradeSync(userId, upgradeParam);
+    }
+
+    @Override
+    public HikResult<UpgradeAsyncResponse> upgradeAcsAsync(long userId, String sdkPath, int deviceNo) {
+        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
+        upgradeParam.dwUpgradeType = 0;
+        upgradeParam.sFilename = sdkPath;
+        upgradeParam.pInbuffer = new IntByReference(deviceNo).getPointer();
+        upgradeParam.dwBufferLen = 4;
+        return upgradeAsync(userId, upgradeParam);
+    }
+
     //------------------------ 云台相关 -----------------------------------//
 
-    /**
-     * 云台控制.
-     */
+    @Override
     public HikResult ptzControl(long userId, int command, int stop, int speed) {
         boolean result = hcnetsdk.NET_DVR_PTZControlWithSpeed_Other(new NativeLong(userId), new NativeLong(1),
                 command, stop, speed);
         return result ? HikResult.ok() : lastError();
     }
 
-    /**
-     * 云台控制开始
-     */
+    @Override
     public HikResult ptzControlStart(long userId, int command, int speed) {
         return ptzControl(userId, command, 0, speed);
     }
 
-    /**
-     * 云台控制停止
-     */
+    @Override
     public HikResult ptzControlStop(long userId, int command, int speed) {
         return ptzControl(userId, command, 0, speed);
     }
 
 
-    /**
-     * 云台点位设置.
-     */
+    @Override
     public HikResult ptzPresetSet(long userId, int presetIndex) {
         return ptzPreset(userId, 8, presetIndex);
     }
 
-    /**
-     * 云台点位清除.
-     */
+    @Override
     public HikResult ptzPresetClean(long userId, int presetIndex) {
         return ptzPreset(userId, 9, presetIndex);
     }
 
-    /**
-     * 云台点位跳转.
-     */
+    @Override
     public HikResult ptzPresetGoto(long userId, int presetIndex) {
         return ptzPreset(userId, 39, presetIndex);
     }
 
-    /**
-     * 云台点位控制.
-     */
+    @Override
     public HikResult ptzPreset(long userId, int presetCommand, int presetIndex) {
         boolean result = hcnetsdk.NET_DVR_PTZPreset_Other(new NativeLong(userId), new NativeLong(1),
                 presetCommand, presetIndex);
         return result ? HikResult.ok() : lastError();
     }
 
-    /**
-     * 云台巡航。
-     */
+    @Override
     public HikResult ptzCruise(long userId, int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
         boolean result = hcnetsdk
                 .NET_DVR_PTZCruise_Other(new NativeLong(userId), new NativeLong(1), cruiseCommand,
@@ -531,59 +520,43 @@ public class HikDeviceTemplate {
         return result ? HikResult.ok() : lastError();
     }
 
-    /**
-     * 云台巡航运行.
-     */
+    @Override
     public HikResult ptzCruiseRun(long userId, int cruiseRoute) {
         return ptzCruise(userId, 37, cruiseRoute, 0, 0);
     }
 
-    /**
-     * 云台巡航运行.
-     */
+    @Override
     public HikResult ptzCruiseStop(long userId, int cruiseRoute) {
         return ptzCruise(userId, 38, cruiseRoute, 0, 0);
     }
 
-    /**
-     * 云台巡航添加点位.
-     */
+    @Override
     public HikResult ptzCruiseFillPreset(long userId, int cruiseRoute, int cruisePoint, int speed) {
         return ptzCruise(userId, 30, cruiseRoute, cruisePoint, speed);
     }
 
-    /**
-     * 云台轨迹操作。
-     */
+    @Override
     public HikResult ptzTrack(long userId, int trackCommand) {
         boolean result = hcnetsdk.NET_DVR_PTZTrack_Other(new NativeLong(userId), new NativeLong(1), trackCommand);
         return result ? HikResult.ok() : lastError();
     }
 
-    /**
-     * 云台轨迹开始记录.
-     */
+    @Override
     public HikResult ptzTrackStartRecord(long userId) {
         return ptzTrack(userId, 34);
     }
 
-    /**
-     * 云台轨迹停止记录.
-     */
+    @Override
     public HikResult ptzTrackStopRecord(long userId) {
         return ptzTrack(userId, 35);
     }
 
-    /**
-     * 云台轨迹运行.
-     */
+    @Override
     public HikResult ptzTrackRun(long userId) {
         return ptzTrack(userId, 35);
     }
 
-    /**
-     * 云台图像缩放.
-     */
+    @Override
     public HikResult ptzZoom(long userId, int xTop, int yTop, int xBottom, int yBottom) {
         NET_DVR_POINT_FRAME point = new NET_DVR_POINT_FRAME();
         point.xTop = xTop;

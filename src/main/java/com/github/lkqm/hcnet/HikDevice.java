@@ -2,6 +2,7 @@ package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
+import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
@@ -107,6 +108,15 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
+    public HikResult<PassThroughResponse> passThrough(String url, String data, int exceptOutByteSize) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.passThrough(token.getUserId(), url, data.getBytes(), exceptOutByteSize);
+    }
+
+    @Override
     public <T extends Structure> HikResult<T> getDvrConfig(long channel, int command, Class<T> clazz) {
         HikResult init = init();
         if (!init.isSuccess()) {
@@ -152,21 +162,57 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult<UpgradeResponse> upgradeSync(String sdkFile) {
+    public HikResult<UpgradeResponse> upgradeSync(NET_DVR_UPGRADE_PARAM upgradeParam) {
         HikResult init = init();
         if (!init.isSuccess()) {
             return init;
         }
-        return deviceTemplate.upgradeSync(token.getUserId(), sdkFile);
+        return deviceTemplate.upgradeSync(token.getUserId(), upgradeParam);
     }
 
     @Override
-    public HikResult<UpgradeAsyncResponse> upgradeAsync(String sdkFile) {
+    public HikResult<UpgradeAsyncResponse> upgradeAsync(NET_DVR_UPGRADE_PARAM upgradeParam) {
         HikResult init = init();
         if (!init.isSuccess()) {
             return init;
         }
-        return deviceTemplate.upgradeAsync(token.getUserId(), sdkFile);
+        return deviceTemplate.upgradeAsync(token.getUserId(), upgradeParam);
+    }
+
+    @Override
+    public HikResult<UpgradeResponse> upgradeDvrSync(String sdkPath) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.upgradeDvrSync(token.getUserId(), sdkPath);
+    }
+
+    @Override
+    public HikResult<UpgradeAsyncResponse> upgradeDvrAsync(String sdkPath) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.upgradeDvrAsync(token.getUserId(), sdkPath);
+    }
+
+    @Override
+    public HikResult<UpgradeResponse> upgradeAcsSync(String sdkPath, int deviceNo) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.upgradeAcsSync(token.getUserId(), sdkPath, deviceNo);
+    }
+
+    @Override
+    public HikResult<UpgradeAsyncResponse> upgradeAcsAsync(String sdkPath, int deviceNo) {
+        HikResult init = init();
+        if (!init.isSuccess()) {
+            return init;
+        }
+        return deviceTemplate.upgradeAcsAsync(token.getUserId(), sdkPath, deviceNo);
     }
 
     @Override

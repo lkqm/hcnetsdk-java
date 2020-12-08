@@ -29,7 +29,7 @@ public class HikDeviceTemplateTest {
     private final String ip = "192.168.0.239";
     private final int port = HikDeviceTemplate.DEFAULT_PORT;
     private final String user = "admin";
-    private final String password = "hik12345+";
+    private final String password = "wxb888888";
     private Token token;
 
     static HikDeviceTemplate deviceTemplate;
@@ -56,24 +56,6 @@ public class HikDeviceTemplateTest {
 
     @Test
     void test() {
-        HikDevice hikDevice = new HikDevice(HCNetSDK.INSTANCE, "192.168.0.233", 8000, "admin", "XH123456");
-        String xml = "<FCSearchDescription version=\"2.0\" xmlns=\"http://www.std-cgi.org/ver20/XMLSchema\"> \n"
-                + "  <!--req,人脸比对数据查询条件--> \n"
-                + "  <searchID> \n"
-                + "1"
-                + "  </searchID> \n"
-                + "  <searchResultPosition> \n"
-                + "   0 "
-                + "  </searchResultPosition> \n"
-                + "  <maxResults> \n"
-                + "    4 \n"
-                + "  </maxResults> \n"
-                + "  <snapStartTime> \n"
-                + "    2019-10-12T00:00:00Z \n"
-                + "  </snapStartTime> \n";
-        HikResult<PassThroughResponse> result = hikDevice
-                .passThrough("POST /ISAPI/Intelligent/FDLib/FCSearch/dataPackage", xml);
-        System.out.println(result);
     }
 
     @Test
@@ -182,8 +164,8 @@ public class HikDeviceTemplateTest {
 
     @Test
     void upgradeSync() {
-        HikResult<UpgradeResponse> result = deviceTemplate.upgradeSync(token.getUserId(),
-                "C:\\appfile\\downlods\\digicap.dav");
+        HikResult<UpgradeResponse> result = deviceTemplate
+                .upgradeAcsSync(token.getUserId(), "C:\\appfile\\downloads\\rzj.dav", 0);
         assertTrue(result.isSuccess(), "请求升级: " + result.getErrorMsg());
         UpgradeResponse upgradeResponse = result.getData();
         assertEquals(1, upgradeResponse.getState(), "升级结果: " + upgradeResponse.getState());

@@ -33,7 +33,7 @@ public class ResponseStatus implements Serializable {
 
     public static ResponseStatus ofXml(String xml) {
         ResponseStatus instance = new ResponseStatus();
-        Map<String, String> map = InnerUtils.xmlToMap(xml, "ResponseStatus");
+        Map<String, String> map = InnerUtils.xmlToFlatMap(xml, "ResponseStatus");
         instance.setRequestURL(map.get("requestURL"));
         instance.setStatusCode(Integer.valueOf(map.get("statusCode")));
         instance.setSubStatusCode(map.get("subStatusCode"));

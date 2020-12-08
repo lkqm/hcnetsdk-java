@@ -5086,6 +5086,20 @@ DVR实现巡航数据结构
         public short wMilliSec;
         public byte[] byRes1 = new byte[2];
     }
+
+    NativeLong NET_DVR_Upgrade_V50(NativeLong lUserID, NET_DVR_UPGRADE_PARAM lpUpgradeParam);
+
+    public static class NET_DVR_UPGRADE_PARAM extends Structure {
+
+        public int dwUpgradeType;
+        public String sFilename;
+        public Pointer pInbuffer;
+        public int dwBufferLen;
+        public byte[] pUnitIdList = new byte[64];
+        public byte[] byRes = new byte[112];
+    }
+
+    boolean NET_DVR_SetRecvTimeOut(int nRecvTimeOut);
 }
 
 

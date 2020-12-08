@@ -60,7 +60,7 @@ public class InnerUtils {
     public static void writeFile(byte[] bytes, String path) {
         File file = new File(path);
         InnerUtils.makeParentDirExists(file);
-        try (FileOutputStream fos = new FileOutputStream(file)) {
+        try (FileOutputStream fos = new FileOutputStream(file, true)) {
             fos.write(bytes);
             fos.flush();
         } catch (IOException e) {
@@ -80,7 +80,7 @@ public class InnerUtils {
      * 转换xml为map
      */
     @SneakyThrows
-    public static Map<String, String> xmlToMap(String xml, String rootElement) {
+    public static Map<String, String> xmlToFlatMap(String xml, String rootElement) {
         Map<String, String> map = new HashMap<>();
         Document doc = parseXmlString(xml);
 

@@ -1,6 +1,7 @@
 package com.github.lkqm.hcnet;
 
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
+import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
@@ -43,6 +44,13 @@ public interface DeviceOptions {
     HikResult<PassThroughResponse> passThrough(String url, String data);
 
     /**
+     * 透传.
+     *
+     * @return
+     */
+    HikResult<PassThroughResponse> passThrough(String url, String data, int exceptOutByteSize);
+
+    /**
      * 获取设备配置.
      */
     <T extends Structure> HikResult<T> getDvrConfig(long channel, int command, Class<T> clazz);
@@ -68,15 +76,34 @@ public interface DeviceOptions {
     HikResult reboot();
 
     /**
-     * 升级设备（同步），注意升级完成后需要手动重启
+     * 升级设备(同步).
      */
-    HikResult<UpgradeResponse> upgradeSync(String sdkFile);
+    HikResult<UpgradeResponse> upgradeSync(NET_DVR_UPGRADE_PARAM upgradeParam);
 
     /**
-     * 升级设备（异步），注意升级完成后需要手动重启
+     * 升级设备(异步).
      */
-    HikResult<UpgradeAsyncResponse> upgradeAsync(String sdkFile);
+    HikResult<UpgradeAsyncResponse> upgradeAsync(NET_DVR_UPGRADE_PARAM upgradeParam);
 
+    /**
+     * 升级普通设备(同步).
+     */
+    HikResult<UpgradeResponse> upgradeDvrSync(String sdkPath);
+
+    /**
+     * 升级普通设备(异步).
+     */
+    HikResult<UpgradeAsyncResponse> upgradeDvrAsync(String sdkPath);
+
+    /**
+     * 升级门禁/人证机设备(同步).
+     */
+    HikResult<UpgradeResponse> upgradeAcsSync(String sdkPath, int deviceNo);
+
+    /**
+     * 升级门禁/人证机器设备(异步).
+     */
+    HikResult<UpgradeAsyncResponse> upgradeAcsAsync(String sdkPath, int deviceNo);
 
     /**
      * 云台控制.
