@@ -29,14 +29,14 @@ public class HikDeviceTemplateTest {
     private final String ip = "192.168.0.239";
     private final int port = HikDeviceTemplate.DEFAULT_PORT;
     private final String user = "admin";
-    private final String password = "wxb888888";
+    private final String password = "hik12345+";
     private Token token;
 
     static HikDeviceTemplate deviceTemplate;
 
     @BeforeAll
     static void beforeAll() {
-        JnaPathUtils.initJnaLibraryPathDev(HikDeviceTemplateTest.class);
+        JnaPathUtils.initJnaLibraryPath();
         deviceTemplate = new HikDeviceTemplate(HCNetSDK.INSTANCE);
     }
 

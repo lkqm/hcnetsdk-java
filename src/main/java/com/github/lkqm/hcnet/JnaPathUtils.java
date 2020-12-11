@@ -16,10 +16,12 @@ public class JnaPathUtils {
     public static final String JNA_PATH_PROPERTY_NAME = "jna.library.path";
 
     /**
-     * 初始化设置加载目录，只影响开发模式下（非jar运行）
+     * 检查并设置本地库加载目录系统变量(jna.library.path)，
+     * <p>
+     * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
-    public static void initJnaLibraryPathDev(Class<?> clazz) {
-        initJnaLibraryPath(clazz, false);
+    public static boolean initJnaLibraryPath() {
+        return initJnaLibraryPath(true);
     }
 
     /**
@@ -27,7 +29,7 @@ public class JnaPathUtils {
      * <p>
      * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
-    public static boolean initJnaLibraryPath(Class<?> clazz, boolean effectiveJar) {
+    public static boolean initJnaLibraryPath(boolean effectiveJar) {
         boolean modifiedPath = false;
         String jnaLibPath = System.getProperty(JNA_PATH_PROPERTY_NAME);
         boolean isJnaLibEmpty = (jnaLibPath == null || jnaLibPath.trim().length() == 0);
@@ -42,8 +44,8 @@ public class JnaPathUtils {
                 throw new RuntimeException("Unsupported operator system: " + OSInfo.getOSType().name());
             }
 
-            if (!isRunWithJar(clazz)) {
-                URL uri = clazz.getClassLoader().getResource(libDir);
+            if (!isRunJar()) {
+                URL uri = JnaPathUtils.class.getClassLoader().getResource(libDir);
                 if (uri == null) {
                     throw new IllegalStateException("Not found relation library: " + libDir);
                 }
@@ -51,7 +53,7 @@ public class JnaPathUtils {
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
                 modifiedPath = true;
             } else if (effectiveJar) {
-                jnaLibPath = getJarDirectoryPath(clazz) + File.separator + libDir;
+                jnaLibPath = getJarDirectoryPath(JnaPathUtils.class) + File.separator + libDir;
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
                 modifiedPath = true;
             }
@@ -62,8 +64,8 @@ public class JnaPathUtils {
     /**
      * 是否以可执行jar方式启动
      */
-    public static boolean isRunWithJar(Class<?> clazz) {
-        URL resource = clazz.getResource("");
+    public static boolean isRunJar() {
+        URL resource = JnaPathUtils.class.getResource("/");
         if (resource == null) {
             return false;
         }

@@ -19,7 +19,7 @@ class HikDeviceTest {
 
     @BeforeAll
     static void beforeAll() {
-        JnaPathUtils.initJnaLibraryPathDev(HikDeviceTest.class);
+        JnaPathUtils.initJnaLibraryPath();
         HCNetSDK hcnetsdk = HCNetSDK.INSTANCE;
         device = new HikDevice(hcnetsdk, "192.168.0.123", HikDeviceTemplate.DEFAULT_PORT, "admin", password);
 
