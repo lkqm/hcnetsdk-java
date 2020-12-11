@@ -13,14 +13,14 @@ class JnaPathUtilsTest {
     @Test
     void initJnaLibraryPath() {
         String oldJnaPathProperty = System.getProperty(JnaPathUtils.JNA_PATH_PROPERTY_NAME);
-        boolean modified = JnaPathUtils.initJnaLibraryPath(false);
+        boolean modified = JnaPathUtils.initJnaLibraryPath(JnaPathUtilsTest.class, false);
         String newJnaPathProperty = System.getProperty(JnaPathUtils.JNA_PATH_PROPERTY_NAME);
         assertTrue(modified, "非jar执行应该修改了系统变量");
         assertNotEquals(oldJnaPathProperty, newJnaPathProperty, "系统变量应该被修改了");
     }
 
     @Test
-    void isJarClass() {
+    void isRunJar() {
         assertFalse(JnaPathUtils.isRunJar(), "运行再非Jar中");
     }
 

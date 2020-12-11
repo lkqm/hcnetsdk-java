@@ -11,7 +11,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("rawtypes")
 class HikDeviceTest {
 
     private static HikDevice device;
@@ -19,7 +18,7 @@ class HikDeviceTest {
 
     @BeforeAll
     static void beforeAll() {
-        JnaPathUtils.initJnaLibraryPath();
+        JnaPathUtils.initJnaLibraryPathDev();
         HCNetSDK hcnetsdk = HCNetSDK.INSTANCE;
         device = new HikDevice(hcnetsdk, "192.168.0.123", HikDeviceTemplate.DEFAULT_PORT, "admin", password);
 

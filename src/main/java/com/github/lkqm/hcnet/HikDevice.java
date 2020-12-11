@@ -4,10 +4,9 @@ import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FMSGCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
-import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
-import com.github.lkqm.hcnet.util.Function;
+import com.github.lkqm.hcnet.util.BiFunction;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Structure;
 import java.util.Date;
@@ -18,7 +17,6 @@ import lombok.Getter;
  * <p>
  * 线程安全的.
  */
-@SuppressWarnings({"rawtypes", "unchecked"})
 public class HikDevice implements DeviceOptions {
 
     @Getter
@@ -42,7 +40,7 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult init() {
+    public HikResult<?> init() {
         if (token == null) {
             synchronized (this) {
                 if (token == null) {
@@ -72,19 +70,19 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult doAction(Function<Token, HikResult> action) {
-        HikResult init = init();
+    public HikResult<?> doAction(BiFunction<HCNetSDK, Token, HikResult<?>> action) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
-        return action.apply(token);
+        return action.apply(deviceTemplate.getHcnetsdk(), token);
     }
 
     @Override
     public HikResult<Long> setupDeploy(FMSGCallBack messageCallback, FExceptionCallBack exceptionCallback) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
 
         if (setupAlarmHandle != null) {
@@ -100,34 +98,34 @@ public class HikDevice implements DeviceOptions {
 
     @Override
     public HikResult<PassThroughResponse> passThrough(String url, String data) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.passThrough(token.getUserId(), url, data);
     }
 
     @Override
     public HikResult<PassThroughResponse> passThrough(String url, String data, int exceptOutByteSize) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.passThrough(token.getUserId(), url, data.getBytes(), exceptOutByteSize);
     }
 
     @Override
     public <T extends Structure> HikResult<T> getDvrConfig(long channel, int command, Class<T> clazz) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.getDvrConfig(token.getUserId(), channel, command, clazz);
     }
 
     @Override
-    public HikResult setDvrConfig(long channel, int type, Structure settings) {
-        HikResult init = init();
+    public HikResult<?> setDvrConfig(long channel, int type, Structure settings) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -135,8 +133,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult modifyPassword(String targetUser, String newPassword) {
-        HikResult init = init();
+    public HikResult<?> modifyPassword(String targetUser, String newPassword) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -144,8 +142,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult adjustTime(Date time) {
-        HikResult init = init();
+    public HikResult<?> adjustTime(Date time) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -153,8 +151,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult reboot() {
-        HikResult init = init();
+    public HikResult<?> reboot() {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -163,61 +161,61 @@ public class HikDevice implements DeviceOptions {
 
     @Override
     public HikResult<UpgradeResponse> upgradeSync(NET_DVR_UPGRADE_PARAM upgradeParam) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeSync(token.getUserId(), upgradeParam);
     }
 
     @Override
     public HikResult<UpgradeAsyncResponse> upgradeAsync(NET_DVR_UPGRADE_PARAM upgradeParam) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeAsync(token.getUserId(), upgradeParam);
     }
 
     @Override
     public HikResult<UpgradeResponse> upgradeDvrSync(String sdkPath) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeDvrSync(token.getUserId(), sdkPath);
     }
 
     @Override
     public HikResult<UpgradeAsyncResponse> upgradeDvrAsync(String sdkPath) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeDvrAsync(token.getUserId(), sdkPath);
     }
 
     @Override
     public HikResult<UpgradeResponse> upgradeAcsSync(String sdkPath, int deviceNo) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeAcsSync(token.getUserId(), sdkPath, deviceNo);
     }
 
     @Override
     public HikResult<UpgradeAsyncResponse> upgradeAcsAsync(String sdkPath, int deviceNo) {
-        HikResult init = init();
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
-            return init;
+            return HikResult.fail(init.getErrorCode(), init.getErrorMsg());
         }
         return deviceTemplate.upgradeAcsAsync(token.getUserId(), sdkPath, deviceNo);
     }
 
     @Override
-    public HikResult ptzControl(int command, int stop, int speed) {
-        HikResult init = init();
+    public HikResult<?> ptzControl(int command, int stop, int speed) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -225,8 +223,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzControlStart(int command, int speed) {
-        HikResult init = init();
+    public HikResult<?> ptzControlStart(int command, int speed) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -234,8 +232,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzControlStop(int command, int speed) {
-        HikResult init = init();
+    public HikResult<?> ptzControlStop(int command, int speed) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -243,8 +241,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzPresetSet(int presetIndex) {
-        HikResult init = init();
+    public HikResult<?> ptzPresetSet(int presetIndex) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -252,8 +250,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzPresetClean(int presetIndex) {
-        HikResult init = init();
+    public HikResult<?> ptzPresetClean(int presetIndex) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -261,8 +259,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzPresetGoto(int presetIndex) {
-        HikResult init = init();
+    public HikResult<?> ptzPresetGoto(int presetIndex) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -270,8 +268,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzPreset(int presetCommand, int presetIndex) {
-        HikResult init = init();
+    public HikResult<?> ptzPreset(int presetCommand, int presetIndex) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -279,8 +277,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzCruise(int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
-        HikResult init = init();
+    public HikResult<?> ptzCruise(int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -288,8 +286,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzCruiseRun(int cruiseRoute) {
-        HikResult init = init();
+    public HikResult<?> ptzCruiseRun(int cruiseRoute) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -297,8 +295,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzCruiseStop(int cruiseRoute) {
-        HikResult init = init();
+    public HikResult<?> ptzCruiseStop(int cruiseRoute) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -306,8 +304,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzCruiseFillPreset(int cruiseRoute, int cruisePoint, int speed) {
-        HikResult init = init();
+    public HikResult<?> ptzCruiseFillPreset(int cruiseRoute, int cruisePoint, int speed) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -315,8 +313,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzTrack(int trackCommand) {
-        HikResult init = init();
+    public HikResult<?> ptzTrack(int trackCommand) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -324,8 +322,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzTrackStartRecord() {
-        HikResult init = init();
+    public HikResult<?> ptzTrackStartRecord() {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -333,8 +331,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzTrackStopRecord() {
-        HikResult init = init();
+    public HikResult<?> ptzTrackStopRecord() {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -342,8 +340,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzTrackRun() {
-        HikResult init = init();
+    public HikResult<?> ptzTrackRun() {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }
@@ -351,8 +349,8 @@ public class HikDevice implements DeviceOptions {
     }
 
     @Override
-    public HikResult ptzZoom(int xTop, int yTop, int xBottom, int yBottom) {
-        HikResult init = init();
+    public HikResult<?> ptzZoom(int xTop, int yTop, int xBottom, int yBottom) {
+        HikResult<?> init = init();
         if (!init.isSuccess()) {
             return init;
         }

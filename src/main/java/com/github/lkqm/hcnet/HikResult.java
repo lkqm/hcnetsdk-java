@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@SuppressWarnings("rawtypes")
 public class HikResult<T> {
 
     protected boolean success;
@@ -22,7 +21,7 @@ public class HikResult<T> {
     /**
      * 返回成功的实例.
      */
-    public static HikResult<?> ok() {
+    public static <T> HikResult<T> ok() {
         return new HikResult<>(true, null, null, null);
     }
 

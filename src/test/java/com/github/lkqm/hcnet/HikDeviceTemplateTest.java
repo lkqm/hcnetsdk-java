@@ -12,7 +12,6 @@ import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.handler.FaceSnapFileStoreHandler;
 import com.github.lkqm.hcnet.handler.VideoFileStoreCallback;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
-import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
@@ -23,7 +22,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-@SuppressWarnings("rawtypes")
 public class HikDeviceTemplateTest {
 
     private final String ip = "192.168.0.239";
@@ -36,7 +34,7 @@ public class HikDeviceTemplateTest {
 
     @BeforeAll
     static void beforeAll() {
-        JnaPathUtils.initJnaLibraryPath();
+        JnaPathUtils.initJnaLibraryPathDev();
         deviceTemplate = new HikDeviceTemplate(HCNetSDK.INSTANCE);
     }
 

@@ -1,4 +1,4 @@
-package com.github.lkqm.hcnet.model;
+package com.github.lkqm.hcnet;
 
 import com.sun.jna.NativeLong;
 import java.io.Serializable;

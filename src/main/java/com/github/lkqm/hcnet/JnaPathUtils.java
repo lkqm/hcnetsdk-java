@@ -15,13 +15,12 @@ public class JnaPathUtils {
 
     public static final String JNA_PATH_PROPERTY_NAME = "jna.library.path";
 
+
     /**
-     * 检查并设置本地库加载目录系统变量(jna.library.path)，
-     * <p>
-     * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
+     * 检查并设置本地库加载目录系统变量(jna.library.path), 仅开发环境下。
      */
-    public static boolean initJnaLibraryPath() {
-        return initJnaLibraryPath(true);
+    public static boolean initJnaLibraryPathDev() {
+        return initJnaLibraryPath(null, false);
     }
 
     /**
@@ -29,7 +28,16 @@ public class JnaPathUtils {
      * <p>
      * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
      */
-    public static boolean initJnaLibraryPath(boolean effectiveJar) {
+    public static boolean initJnaLibraryPath(Class<?> target) {
+        return initJnaLibraryPath(target, true);
+    }
+
+    /**
+     * 检查并设置本地库加载目录系统变量(jna.library.path)，
+     * <p>
+     * 设置的路径, 资源目录下： natives/{type}, 其中type在不同操作系统下对应值不一样(so, dll, dylib)
+     */
+    public static boolean initJnaLibraryPath(Class<?> target, boolean effectiveJar) {
         boolean modifiedPath = false;
         String jnaLibPath = System.getProperty(JNA_PATH_PROPERTY_NAME);
         boolean isJnaLibEmpty = (jnaLibPath == null || jnaLibPath.trim().length() == 0);
@@ -53,7 +61,7 @@ public class JnaPathUtils {
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
                 modifiedPath = true;
             } else if (effectiveJar) {
-                jnaLibPath = getJarDirectoryPath(JnaPathUtils.class) + File.separator + libDir;
+                jnaLibPath = getJarDirectoryPath(target) + File.separator + libDir;
                 System.setProperty(JNA_PATH_PROPERTY_NAME, jnaLibPath);
                 modifiedPath = true;
             }
@@ -66,6 +74,9 @@ public class JnaPathUtils {
      */
     public static boolean isRunJar() {
         URL resource = JnaPathUtils.class.getResource("/");
+        if (resource == null) {
+            resource = JnaPathUtils.class.getResource("");
+        }
         if (resource == null) {
             return false;
         }

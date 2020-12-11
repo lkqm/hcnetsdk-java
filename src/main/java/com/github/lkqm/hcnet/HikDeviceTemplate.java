@@ -9,10 +9,9 @@ import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.ResponseStatus;
-import com.github.lkqm.hcnet.model.Token;
 import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
 import com.github.lkqm.hcnet.model.UpgradeResponse;
-import com.github.lkqm.hcnet.util.Function;
+import com.github.lkqm.hcnet.util.BiFunction;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
@@ -31,7 +30,6 @@ import lombok.SneakyThrows;
 /**
  * 海康SDK工具类.
  */
-@SuppressWarnings("rawtypes")
 public class HikDeviceTemplate implements DeviceTemplateOptions {
 
     public static final int DEFAULT_PORT = 8000;
@@ -70,7 +68,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult logout(long userId) {
+    public HikResult<?> logout(long userId) {
         if (userId > -1) {
             boolean result = hcnetsdk.NET_DVR_Logout(new NativeLong(userId));
             if (!result) {
@@ -81,8 +79,8 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult doAction(String ip, int port, String user, String password,
-            Function<Token, HikResult> action) {
+    public HikResult<?> doAction(String ip, int port, String user, String password,
+            BiFunction<HCNetSDK, Token, HikResult<?>> action) {
         HikResult<Token> loginResult = login(ip, port, user, password);
         if (!loginResult.isSuccess()) {
             return loginResult;
@@ -90,7 +88,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
 
         Token token = loginResult.getData();
         try {
-            HikResult result = action.apply(token);
+            HikResult<?> result = action.apply(hcnetsdk, token);
             if (result == null) {
                 result = HikResult.ok();
             }
@@ -101,7 +99,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult lastError() {
+    public <T> HikResult<T> lastError() {
         int code = hcnetsdk.NET_DVR_GetLastError();
         if (code == 0) {
             return null;
@@ -168,14 +166,14 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
         HikResult<PassThroughResponse> hikResult = new HikResult<>();
         PassThroughResponse response = new PassThroughResponse();
         if (!result) {
-            HikResult error = lastError();
+            HikResult<?> error = lastError();
             hikResult.set(error);
             if (statusXml.trim().length() > 0) {
-                response.setResponseStatus(ResponseStatus.ofXml(statusXml));
+                response.setStatus(ResponseStatus.ofXml(statusXml));
             }
         } else {
             hikResult.setSuccess(true);
-            response.setData(data);
+            response.setBytes(data);
         }
 
         hikResult.setData(response);
@@ -214,7 +212,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
 
 
     @Override
-    public HikResult reboot(long userId) {
+    public HikResult<?> reboot(long userId) {
         boolean rebootResult = hcnetsdk.NET_DVR_RebootDVR(new NativeLong(userId));
         if (!rebootResult) {
             return lastError();
@@ -223,13 +221,13 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult modifyPassword(long userId, String username, String newPassword) {
+    public HikResult<?> modifyPassword(long userId, String username, String newPassword) {
         // 获取原始配置
         HCNetSDK.NET_DVR_USER_V30 dvrUser = new HCNetSDK.NET_DVR_USER_V30();
         boolean getResult = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_GET_USERCFG_V30,
                 new NativeLong(0), dvrUser.getPointer(), dvrUser.size(), new IntByReference(0));
         if (!getResult) {
-            HikResult errorResult = lastError();
+            HikResult<?> errorResult = lastError();
             errorResult.setSuccess(false);
             return errorResult;
         }
@@ -246,7 +244,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
         boolean setResult = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_SET_USERCFG_V30,
                 new NativeLong(0), dvrUser.getPointer(), dvrUser.dwSize);
         if (!setResult) {
-            HikResult errorResult = lastError();
+            HikResult<?> errorResult = lastError();
             errorResult.setSuccess(false);
             return errorResult;
         }
@@ -254,7 +252,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult nvrRebindChannels(long userId, String dvrUsername, String dvrNewPassword) {
+    public HikResult<?> nvrRebindChannels(long userId, String dvrUsername, String dvrNewPassword) {
         // 获取已绑定通道配置
         IntByReference ibrBytesReturned = new IntByReference(0);
         HCNetSDK.NET_DVR_IPPARACFG mStrIpparaCfg = new HCNetSDK.NET_DVR_IPPARACFG();
@@ -264,7 +262,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
                 .NET_DVR_GetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_GET_IPPARACFG, new NativeLong(33),
                         lpIpParaConfig, mStrIpparaCfg.size(), ibrBytesReturned);
         if (!getResult) {
-            HikResult errorResult = lastError();
+            HikResult<?> errorResult = lastError();
             errorResult.setSuccess(false);
             return errorResult;
         }
@@ -283,7 +281,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
                 .NET_DVR_SetDVRConfig(new NativeLong(userId), HCNetSDK.NET_DVR_SET_IPPARACFG, new NativeLong(33),
                         mStrIpparaCfg.getPointer(), mStrIpparaCfg.dwSize);
         if (!setResult) {
-            HikResult errorResult = lastError();
+            HikResult<?> errorResult = lastError();
             errorResult.setSuccess(false);
             return errorResult;
         }
@@ -291,7 +289,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult adjustTime(long userId, Date time) {
+    public HikResult<?> adjustTime(long userId, Date time) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(time);
 
@@ -321,7 +319,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult getDvrConfig(long userId, long channel, int command, Structure data) {
+    public HikResult<?> getDvrConfig(long userId, long channel, int command, Structure data) {
         data.write();
         boolean result = hcnetsdk.NET_DVR_GetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
                 data.getPointer(), data.size(), new IntByReference(0));
@@ -333,7 +331,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult setDvrConfig(long userId, long channel, int command, Structure data) {
+    public HikResult<?> setDvrConfig(long userId, long channel, int command, Structure data) {
         data.write();
         boolean result = hcnetsdk.NET_DVR_SetDVRConfig(new NativeLong(userId), command, new NativeLong(channel),
                 data.getPointer(), data.size());
@@ -367,7 +365,7 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult stopRealPlay(long realHandle) {
+    public HikResult<?> stopRealPlay(long realHandle) {
         boolean result = hcnetsdk.NET_DVR_StopRealPlay(new NativeLong(realHandle));
         return result ? HikResult.ok() : lastError();
     }
@@ -473,47 +471,47 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     //------------------------ 云台相关 -----------------------------------//
 
     @Override
-    public HikResult ptzControl(long userId, int command, int stop, int speed) {
+    public HikResult<?> ptzControl(long userId, int command, int stop, int speed) {
         boolean result = hcnetsdk.NET_DVR_PTZControlWithSpeed_Other(new NativeLong(userId), new NativeLong(1),
                 command, stop, speed);
         return result ? HikResult.ok() : lastError();
     }
 
     @Override
-    public HikResult ptzControlStart(long userId, int command, int speed) {
+    public HikResult<?> ptzControlStart(long userId, int command, int speed) {
         return ptzControl(userId, command, 0, speed);
     }
 
     @Override
-    public HikResult ptzControlStop(long userId, int command, int speed) {
+    public HikResult<?> ptzControlStop(long userId, int command, int speed) {
         return ptzControl(userId, command, 0, speed);
     }
 
 
     @Override
-    public HikResult ptzPresetSet(long userId, int presetIndex) {
+    public HikResult<?> ptzPresetSet(long userId, int presetIndex) {
         return ptzPreset(userId, 8, presetIndex);
     }
 
     @Override
-    public HikResult ptzPresetClean(long userId, int presetIndex) {
+    public HikResult<?> ptzPresetClean(long userId, int presetIndex) {
         return ptzPreset(userId, 9, presetIndex);
     }
 
     @Override
-    public HikResult ptzPresetGoto(long userId, int presetIndex) {
+    public HikResult<?> ptzPresetGoto(long userId, int presetIndex) {
         return ptzPreset(userId, 39, presetIndex);
     }
 
     @Override
-    public HikResult ptzPreset(long userId, int presetCommand, int presetIndex) {
+    public HikResult<?> ptzPreset(long userId, int presetCommand, int presetIndex) {
         boolean result = hcnetsdk.NET_DVR_PTZPreset_Other(new NativeLong(userId), new NativeLong(1),
                 presetCommand, presetIndex);
         return result ? HikResult.ok() : lastError();
     }
 
     @Override
-    public HikResult ptzCruise(long userId, int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
+    public HikResult<?> ptzCruise(long userId, int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
         boolean result = hcnetsdk
                 .NET_DVR_PTZCruise_Other(new NativeLong(userId), new NativeLong(1), cruiseCommand,
                         (byte) cruiseRoute, (byte) cruisePoint, (byte) speed);
@@ -521,43 +519,43 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult ptzCruiseRun(long userId, int cruiseRoute) {
+    public HikResult<?> ptzCruiseRun(long userId, int cruiseRoute) {
         return ptzCruise(userId, 37, cruiseRoute, 0, 0);
     }
 
     @Override
-    public HikResult ptzCruiseStop(long userId, int cruiseRoute) {
+    public HikResult<?> ptzCruiseStop(long userId, int cruiseRoute) {
         return ptzCruise(userId, 38, cruiseRoute, 0, 0);
     }
 
     @Override
-    public HikResult ptzCruiseFillPreset(long userId, int cruiseRoute, int cruisePoint, int speed) {
+    public HikResult<?> ptzCruiseFillPreset(long userId, int cruiseRoute, int cruisePoint, int speed) {
         return ptzCruise(userId, 30, cruiseRoute, cruisePoint, speed);
     }
 
     @Override
-    public HikResult ptzTrack(long userId, int trackCommand) {
+    public HikResult<?> ptzTrack(long userId, int trackCommand) {
         boolean result = hcnetsdk.NET_DVR_PTZTrack_Other(new NativeLong(userId), new NativeLong(1), trackCommand);
         return result ? HikResult.ok() : lastError();
     }
 
     @Override
-    public HikResult ptzTrackStartRecord(long userId) {
+    public HikResult<?> ptzTrackStartRecord(long userId) {
         return ptzTrack(userId, 34);
     }
 
     @Override
-    public HikResult ptzTrackStopRecord(long userId) {
+    public HikResult<?> ptzTrackStopRecord(long userId) {
         return ptzTrack(userId, 35);
     }
 
     @Override
-    public HikResult ptzTrackRun(long userId) {
+    public HikResult<?> ptzTrackRun(long userId) {
         return ptzTrack(userId, 35);
     }
 
     @Override
-    public HikResult ptzZoom(long userId, int xTop, int yTop, int xBottom, int yBottom) {
+    public HikResult<?> ptzZoom(long userId, int xTop, int yTop, int xBottom, int yBottom) {
         NET_DVR_POINT_FRAME point = new NET_DVR_POINT_FRAME();
         point.xTop = xTop;
         point.yTop = yTop;
