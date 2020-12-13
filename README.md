@@ -1,12 +1,20 @@
 # hcnetsdk
 海康网络HCNetSDK二次封装的Java库.
 
+
+```
+<dependency>
+    <groupId>com.github.lkqm</groupId>
+    <artifactId>hcnetsdk-java</artifactId>
+    <version>0.0.5</version>
+</dependency>
+```
 支持: JDK1.7+
 
 ## 例子
 ```
 HikDevice device = new HikDevice(hcnetsdk, ip, port, user, password);
-device.reboot();
+device.opsForMaintain().reboot();
 ```
 
 ## 核心
@@ -24,10 +32,9 @@ device.reboot();
 - 透传 (passThrough)
 - 设备配置 (getNvrConfig, setNvrConfig)
 - 修改密码 (modifyPassword)
-- 校准时间 (adjustTime)
-- 重启设备 (reboot)
-- 升级 (upgradeSync, upgradeAsync)
-- 云台控制 (ptzXxx)
+- 本地功能 (opsForSdk)
+- 设备维护 (opsForMaintain): 升级、重启、校时、配置文件.
+- 云台控制 (opsForPtz)
 - ...
 
 ## 事件

@@ -1,7 +1,6 @@
 package com.github.lkqm.hcnet;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -12,53 +11,51 @@ import com.github.lkqm.hcnet.handler.DispatchMessageCallback;
 import com.github.lkqm.hcnet.handler.FaceSnapFileStoreHandler;
 import com.github.lkqm.hcnet.handler.VideoFileStoreCallback;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
-import com.github.lkqm.hcnet.model.UpgradeResponse;
+import com.github.lkqm.hcnet.test.DeviceConstants;
+import com.github.lkqm.hcnet.test.DeviceConstants.DeviceInfo;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class HikDeviceTemplateTest {
 
-    private final String ip = "192.168.0.239";
-    private final int port = HikDeviceTemplate.DEFAULT_PORT;
-    private final String user = "admin";
-    private final String password = "hik12345+";
-    private Token token;
-
     static HikDeviceTemplate deviceTemplate;
+    static Token token;
+    static DeviceInfo device;
 
     @BeforeAll
     static void beforeAll() {
         JnaPathUtils.initJnaLibraryPathDev();
         deviceTemplate = new HikDeviceTemplate(HCNetSDK.INSTANCE);
+
+        device = DeviceConstants.dvrDevice;
+        HikResult<Token> loginResult = deviceTemplate.login(device.ip, device.port, device.user, device.password);
+        Assertions.assertTrue(loginResult.isSuccess(), "登录失败: " + loginResult.getError());
+
+        token = loginResult.getData();
     }
 
-    @BeforeEach
-    void beforeEach() {
-        HikResult<Token> actionResult = deviceTemplate.login(ip, port, user, password);
-        assertTrue(actionResult.isSuccess(), "登录失败: " + actionResult.getError());
-        this.token = actionResult.getData();
-    }
-
-    @AfterEach
-    void destroy() {
-        if (this.token != null) {
-            deviceTemplate.logout(this.token.getUserId());
+    @AfterAll
+    static void afterAll() {
+        if (token != null && token.getUserId() != null) {
+            deviceTemplate.logout(token.getUserId());
         }
     }
 
     @Test
     void test() {
+        HikResult<Date> deviceTimeResult = deviceTemplate.opsForMaintain(token.getUserId()).getDeviceTime();
+        System.out.println(deviceTimeResult);
     }
 
     @Test
     void login() {
-        HikResult<Token> tokenResult = deviceTemplate.login(ip, port, user, password);
+        HikResult<Token> tokenResult = deviceTemplate.login(device.ip, device.port, device.user, device.password);
         assertNotNull(tokenResult, "登录响应数据不能为空");
         if (tokenResult.isSuccess()) {
             Token token = tokenResult.getData();
@@ -74,10 +71,10 @@ public class HikDeviceTemplateTest {
 
     @Test
     void modifyPassword() {
-        HikResult actionResult = deviceTemplate.modifyPassword(token.getUserId(), user, "hik123456");
+        HikResult actionResult = deviceTemplate.modifyPassword(token.getUserId(), device.user, "hik123456");
         assertTrue(actionResult.isSuccess(), "密码修改失败: " + actionResult.getError());
         // 还原
-        actionResult = deviceTemplate.modifyPassword(token.getUserId(), user, password);
+        actionResult = deviceTemplate.modifyPassword(token.getUserId(), device.user, device.password);
         assertTrue(actionResult.isSuccess(), "密码修改失败: " + actionResult.getError());
     }
 
@@ -130,18 +127,6 @@ public class HikDeviceTemplateTest {
     }
 
     @Test
-    void adjustTime() {
-        HikResult adjustTimeResult = deviceTemplate.adjustTime(token.getUserId(), new Date());
-        assertTrue(adjustTimeResult.isSuccess(), "校时失败: " + adjustTimeResult.getErrorMsg());
-    }
-
-    @Test
-    void reboot() {
-        HikResult actionResult = deviceTemplate.reboot(token.getUserId());
-        assertTrue(actionResult.isSuccess(), "重启失败: " + actionResult.getErrorMsg());
-    }
-
-    @Test
     void getDvrConfig() {
         HikResult<NET_DVR_TIME> result = deviceTemplate
                 .getDvrConfig(token.getUserId(), 0, HCNetSDK.NET_DVR_GET_TIMECFG, NET_DVR_TIME.class);
@@ -158,69 +143,6 @@ public class HikDeviceTemplateTest {
         HikResult<Long> result = deviceTemplate.realPlay(token.getUserId(), callback);
         assertTrue(result.isSuccess(), "视频预览失败: " + result.getError());
         Thread.sleep(100000);
-    }
-
-    @Test
-    void upgradeSync() {
-        HikResult<UpgradeResponse> result = deviceTemplate
-                .upgradeAcsSync(token.getUserId(), "C:\\appfile\\downloads\\rzj.dav", 0);
-        assertTrue(result.isSuccess(), "请求升级: " + result.getErrorMsg());
-        UpgradeResponse upgradeResponse = result.getData();
-        assertEquals(1, upgradeResponse.getState(), "升级结果: " + upgradeResponse.getState());
-    }
-
-    @Test
-    void ptzControl() {
-        HikResult result = deviceTemplate.ptzControlStart(token.getUserId(), 21, 7);
-        assertTrue(result.isSuccess(), "云台控制开始失败: " + result.getError());
-
-        result = deviceTemplate.ptzControlStop(token.getUserId(), 21, 7);
-        assertTrue(result.isSuccess(), "云台控制停止失败: " + result.getError());
-    }
-
-    @Test
-    void ptzPreset() {
-        int presetIndex = 1;
-        HikResult result = deviceTemplate.ptzPresetSet(token.getUserId(), presetIndex);
-        assertTrue(result.isSuccess(), "云台点位设置失败: " + result.getError());
-
-        result = deviceTemplate.ptzPresetGoto(token.getUserId(), presetIndex);
-        assertTrue(result.isSuccess(), "云台点位跳转失败: " + result.getError());
-
-        result = deviceTemplate.ptzPresetClean(token.getUserId(), presetIndex);
-        assertTrue(result.isSuccess(), "云台点位跳转失败: " + result.getError());
-    }
-
-    @Test
-    void ptzCruise() {
-        int route = 1;
-        HikResult result = deviceTemplate.ptzCruiseFillPreset(token.getUserId(), route, 1, 18);
-        assertTrue(result.isSuccess(), "云台巡航添加点位失败: " + result.getError());
-
-        result = deviceTemplate.ptzCruiseRun(token.getUserId(), route);
-        assertTrue(result.isSuccess(), "云台巡航运行失败: " + result.getError());
-
-        result = deviceTemplate.ptzCruiseStop(token.getUserId(), route);
-        assertTrue(result.isSuccess(), "云台巡航停止失败: " + result.getError());
-    }
-
-    @Test
-    void ptzTrack() {
-        HikResult result = deviceTemplate.ptzTrackStartRecord(token.getUserId());
-        assertTrue(result.isSuccess(), "云台轨迹开始记录失败: " + result.getError());
-
-        result = deviceTemplate.ptzTrackStopRecord(token.getUserId());
-        assertTrue(result.isSuccess(), "云台轨迹停止记录失败: " + result.getError());
-
-        result = deviceTemplate.ptzTrackRun(token.getUserId());
-        assertTrue(result.isSuccess(), "云台轨迹运行失败: " + result.getError());
-
-    }
-
-    @Test
-    void pztZoom() {
-        HikResult result = deviceTemplate.ptzZoom(token.getUserId(), 0, 0, 1000, 1000);
-        assertTrue(result.isSuccess(), "云台图像区域缩放失败: " + result.getError());
     }
 
 }

@@ -3,26 +3,23 @@ package com.github.lkqm.hcnet;
 import com.github.lkqm.hcnet.HCNetSDK.FExceptionCallBack;
 import com.github.lkqm.hcnet.HCNetSDK.FRealDataCallBack_V30;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_DEVICEINFO_V40;
-import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_POINT_FRAME;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_PREVIEWINFO;
-import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_UPGRADE_PARAM;
 import com.github.lkqm.hcnet.HCNetSDK.NET_DVR_USER_LOGIN_INFO;
 import com.github.lkqm.hcnet.model.PassThroughResponse;
 import com.github.lkqm.hcnet.model.ResponseStatus;
-import com.github.lkqm.hcnet.model.UpgradeAsyncResponse;
-import com.github.lkqm.hcnet.model.UpgradeResponse;
+import com.github.lkqm.hcnet.options.MaintainOptions;
+import com.github.lkqm.hcnet.options.MaintainOptionsImpl;
+import com.github.lkqm.hcnet.options.PtzOptions;
+import com.github.lkqm.hcnet.options.PtzOptionsImpl;
+import com.github.lkqm.hcnet.options.SdkOptions;
+import com.github.lkqm.hcnet.options.SdkOptionsImpl;
 import com.github.lkqm.hcnet.util.BiFunction;
 import com.sun.jna.NativeLong;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.NativeLongByReference;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.Objects;
-import java.util.concurrent.Callable;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -210,16 +207,6 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
         return HikResult.ok(setupAlarmHandle.longValue());
     }
 
-
-    @Override
-    public HikResult<?> reboot(long userId) {
-        boolean rebootResult = hcnetsdk.NET_DVR_RebootDVR(new NativeLong(userId));
-        if (!rebootResult) {
-            return lastError();
-        }
-        return HikResult.ok();
-    }
-
     @Override
     public HikResult<?> modifyPassword(long userId, String username, String newPassword) {
         // 获取原始配置
@@ -289,21 +276,6 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
     }
 
     @Override
-    public HikResult<?> adjustTime(long userId, Date time) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(time);
-
-        HCNetSDK.NET_DVR_TIME netDvrTime = new HCNetSDK.NET_DVR_TIME();
-        netDvrTime.dwYear = calendar.get(Calendar.YEAR);
-        netDvrTime.dwMonth = calendar.get(Calendar.MONTH) + 1;
-        netDvrTime.dwDay = calendar.get(Calendar.DAY_OF_MONTH);
-        netDvrTime.dwHour = calendar.get(Calendar.HOUR_OF_DAY);
-        netDvrTime.dwMinute = calendar.get(Calendar.MINUTE);
-        netDvrTime.dwSecond = calendar.get(Calendar.SECOND);
-        return setDvrConfig(userId, 0, HCNetSDK.NET_DVR_SET_TIMECFG, netDvrTime);
-    }
-
-    @Override
     @SneakyThrows
     public <T extends Structure> HikResult<T> getDvrConfig(long userId, long channel, int command,
             Class<T> clazz) {
@@ -370,200 +342,19 @@ public class HikDeviceTemplate implements DeviceTemplateOptions {
         return result ? HikResult.ok() : lastError();
     }
 
-    //------------------------ 升级相关 -----------------------------------//
-
     @Override
-    @SneakyThrows
-    public HikResult<UpgradeResponse> upgradeSync(long userId, NET_DVR_UPGRADE_PARAM upgradeParam) {
-        HikResult<UpgradeAsyncResponse> upgradeResult = this.upgradeAsync(userId, upgradeParam);
-        if (!upgradeResult.isSuccess()) {
-            return HikResult.fail(upgradeResult.getErrorCode(), upgradeResult.getErrorMsg());
-        }
-        UpgradeAsyncResponse asyncResponse = upgradeResult.getData();
-        UpgradeResponse response = asyncResponse.getFuture().get();
-        return HikResult.ok(response);
+    public SdkOptions opsForSdk() {
+        return new SdkOptionsImpl(this);
     }
 
     @Override
-    public HikResult<UpgradeAsyncResponse> upgradeAsync(long userId, NET_DVR_UPGRADE_PARAM upgradeParam) {
-        // 请求升级
-        upgradeParam.write();
-        final NativeLong upgradeHandle = hcnetsdk.NET_DVR_Upgrade_V50(new NativeLong(userId), upgradeParam);
-        if (upgradeHandle.longValue() == -1) {
-            return lastError();
-        }
-
-        // 获取结果, 并关闭资源
-        FutureTask<UpgradeResponse> future = new FutureTask<>(new Callable<UpgradeResponse>() {
-            @Override
-            public UpgradeResponse call() throws Exception {
-                int state;
-                int errorTimes = 0;
-                do {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(15));
-                    state = hcnetsdk.NET_DVR_GetUpgradeState(upgradeHandle);
-                    if (state == -1) {
-                        errorTimes++;
-                    } else {
-                        errorTimes = 0;
-                    }
-                } while (state == 2 || (state == -1 && errorTimes >= 3));
-                UpgradeResponse response = new UpgradeResponse();
-                response.setHandle(upgradeHandle.longValue());
-                response.setState(state);
-                if (state == -1) {
-                    response.setError(lastError());
-                } else {
-                    // 关闭升级句柄
-                    hcnetsdk.NET_DVR_CloseUpgradeHandle(upgradeHandle);
-                }
-                return response;
-            }
-        });
-        new Thread(future).start();
-
-        UpgradeAsyncResponse response = new UpgradeAsyncResponse();
-        response.setHandle(upgradeHandle.longValue());
-        response.setFuture(future);
-        return HikResult.ok(response);
+    public MaintainOptions opsForMaintain(long userId) {
+        return new MaintainOptionsImpl(this, userId);
     }
 
     @Override
-    @SneakyThrows
-    public HikResult<UpgradeResponse> upgradeDvrSync(long userId, String sdkPath) {
-        HikResult<UpgradeAsyncResponse> upgradeResult = this.upgradeDvrAsync(userId, sdkPath);
-        if (!upgradeResult.isSuccess()) {
-            return HikResult.fail(upgradeResult.getErrorCode(), upgradeResult.getErrorMsg());
-        }
-        UpgradeAsyncResponse asyncResponse = upgradeResult.getData();
-        UpgradeResponse response = asyncResponse.getFuture().get();
-        return HikResult.ok(response);
-    }
-
-    @Override
-    public HikResult<UpgradeAsyncResponse> upgradeDvrAsync(long userId, String sdkPath) {
-        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
-        upgradeParam.dwUpgradeType = 0;
-        upgradeParam.sFilename = sdkPath;
-        return upgradeAsync(userId, upgradeParam);
-    }
-
-    @Override
-    public HikResult<UpgradeResponse> upgradeAcsSync(long userId, String sdkPath, int deviceNo) {
-        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
-        upgradeParam.dwUpgradeType = 0;
-        upgradeParam.sFilename = sdkPath;
-        upgradeParam.pInbuffer = new IntByReference(deviceNo).getPointer();
-        upgradeParam.dwBufferLen = 4;
-        return upgradeSync(userId, upgradeParam);
-    }
-
-    @Override
-    public HikResult<UpgradeAsyncResponse> upgradeAcsAsync(long userId, String sdkPath, int deviceNo) {
-        NET_DVR_UPGRADE_PARAM upgradeParam = new NET_DVR_UPGRADE_PARAM();
-        upgradeParam.dwUpgradeType = 0;
-        upgradeParam.sFilename = sdkPath;
-        upgradeParam.pInbuffer = new IntByReference(deviceNo).getPointer();
-        upgradeParam.dwBufferLen = 4;
-        return upgradeAsync(userId, upgradeParam);
-    }
-
-    //------------------------ 云台相关 -----------------------------------//
-
-    @Override
-    public HikResult<?> ptzControl(long userId, int command, int stop, int speed) {
-        boolean result = hcnetsdk.NET_DVR_PTZControlWithSpeed_Other(new NativeLong(userId), new NativeLong(1),
-                command, stop, speed);
-        return result ? HikResult.ok() : lastError();
-    }
-
-    @Override
-    public HikResult<?> ptzControlStart(long userId, int command, int speed) {
-        return ptzControl(userId, command, 0, speed);
-    }
-
-    @Override
-    public HikResult<?> ptzControlStop(long userId, int command, int speed) {
-        return ptzControl(userId, command, 0, speed);
-    }
-
-
-    @Override
-    public HikResult<?> ptzPresetSet(long userId, int presetIndex) {
-        return ptzPreset(userId, 8, presetIndex);
-    }
-
-    @Override
-    public HikResult<?> ptzPresetClean(long userId, int presetIndex) {
-        return ptzPreset(userId, 9, presetIndex);
-    }
-
-    @Override
-    public HikResult<?> ptzPresetGoto(long userId, int presetIndex) {
-        return ptzPreset(userId, 39, presetIndex);
-    }
-
-    @Override
-    public HikResult<?> ptzPreset(long userId, int presetCommand, int presetIndex) {
-        boolean result = hcnetsdk.NET_DVR_PTZPreset_Other(new NativeLong(userId), new NativeLong(1),
-                presetCommand, presetIndex);
-        return result ? HikResult.ok() : lastError();
-    }
-
-    @Override
-    public HikResult<?> ptzCruise(long userId, int cruiseCommand, int cruiseRoute, int cruisePoint, int speed) {
-        boolean result = hcnetsdk
-                .NET_DVR_PTZCruise_Other(new NativeLong(userId), new NativeLong(1), cruiseCommand,
-                        (byte) cruiseRoute, (byte) cruisePoint, (byte) speed);
-        return result ? HikResult.ok() : lastError();
-    }
-
-    @Override
-    public HikResult<?> ptzCruiseRun(long userId, int cruiseRoute) {
-        return ptzCruise(userId, 37, cruiseRoute, 0, 0);
-    }
-
-    @Override
-    public HikResult<?> ptzCruiseStop(long userId, int cruiseRoute) {
-        return ptzCruise(userId, 38, cruiseRoute, 0, 0);
-    }
-
-    @Override
-    public HikResult<?> ptzCruiseFillPreset(long userId, int cruiseRoute, int cruisePoint, int speed) {
-        return ptzCruise(userId, 30, cruiseRoute, cruisePoint, speed);
-    }
-
-    @Override
-    public HikResult<?> ptzTrack(long userId, int trackCommand) {
-        boolean result = hcnetsdk.NET_DVR_PTZTrack_Other(new NativeLong(userId), new NativeLong(1), trackCommand);
-        return result ? HikResult.ok() : lastError();
-    }
-
-    @Override
-    public HikResult<?> ptzTrackStartRecord(long userId) {
-        return ptzTrack(userId, 34);
-    }
-
-    @Override
-    public HikResult<?> ptzTrackStopRecord(long userId) {
-        return ptzTrack(userId, 35);
-    }
-
-    @Override
-    public HikResult<?> ptzTrackRun(long userId) {
-        return ptzTrack(userId, 35);
-    }
-
-    @Override
-    public HikResult<?> ptzZoom(long userId, int xTop, int yTop, int xBottom, int yBottom) {
-        NET_DVR_POINT_FRAME point = new NET_DVR_POINT_FRAME();
-        point.xTop = xTop;
-        point.yTop = yTop;
-        point.xBottom = xBottom;
-        point.yBottom = yBottom;
-        point.write();
-        boolean result = hcnetsdk.NET_DVR_PTZSelZoomIn_EX(new NativeLong(userId), new NativeLong(1), point);
-        return result ? HikResult.ok() : lastError();
+    public PtzOptions opsForPtz(long userId) {
+        return new PtzOptionsImpl(this, userId);
     }
 
 }

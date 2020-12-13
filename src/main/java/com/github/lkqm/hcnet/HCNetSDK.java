@@ -4473,7 +4473,7 @@ DVR实现巡航数据结构
 
     boolean NET_DVR_PTZMltTrack_EX(NativeLong lRealHandle, int dwPTZTrackCmd, int dwTrackIndex);
 
-    boolean NET_DVR_RemoteControl(NativeLong lUserID, int dwCommand, Structure lpParam, int size);
+    boolean NET_DVR_RemoteControl(NativeLong lUserID, int dwCommand, Pointer lpParam, int size);
 
     //文件查找与回放
     NativeLong NET_DVR_FindFile(NativeLong lUserID, NativeLong lChannel, int dwFileType, NET_DVR_TIME lpStartTime,
@@ -4875,14 +4875,15 @@ DVR实现巡航数据结构
 
     boolean NET_DVR_SetConfigFile(NativeLong lUserID, String sFileName);
 
-    boolean NET_DVR_GetConfigFile_V30(NativeLong lUserID, String sOutBuffer, int dwOutSize, IntByReference pReturnSize);
+    boolean NET_DVR_GetConfigFile_V30(NativeLong lUserID, Pointer sOutBuffer, int dwOutSize,
+            IntByReference pReturnSize);
 
-    boolean NET_DVR_GetConfigFile_EX(NativeLong lUserID, String sOutBuffer, int dwOutSize);
+    boolean NET_DVR_GetConfigFile_EX(NativeLong lUserID, Pointer sOutBuffer, int dwOutSize);
 
     boolean NET_DVR_SetConfigFile_EX(NativeLong lUserID, String sInBuffer, int dwInSize);
 
     //启用日志文件写入接口
-    boolean NET_DVR_SetLogToFile(boolean bLogEnable, String strLogDir, boolean bAutoDel);
+    boolean NET_DVR_SetLogToFile(int nLogLevel, String strLogDir, boolean bAutoDel);
 
     boolean NET_DVR_GetSDKState(NET_DVR_SDKSTATE pSDKState);
 
