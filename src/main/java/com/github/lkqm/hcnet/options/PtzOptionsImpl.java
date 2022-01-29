@@ -31,7 +31,7 @@ public class PtzOptionsImpl extends BaseOptions implements PtzOptions {
 
     @Override
     public HikResult<?> controlStop(int command, int speed) {
-        return control(command, 0, speed);
+        return control(command, 1, speed);
     }
 
 
